@@ -9,6 +9,8 @@ import matplotlib.cm as cm
 import numpy as np
 import warnings
 
+from load import *
+
 def is_square(shp, n_colors=1):
     """
     Test whether entries in shp are square numbers, or are square numbers after divigind out the
@@ -79,8 +81,10 @@ def show_receptive_fields(theta, P=None, n_colors=None, max_display=100, grid_wa
         theta = np.dot(P, theta)
 
     vmin = np.min(theta)
+    #print vmin
     vmax = np.max(theta)
-
+    #print vmax
+    
     for jj in range(nf):
         plt.subplot(grid_wa, grid_wb, jj+1)
         ptch = np.zeros((n_colors*img_w**2,))
@@ -92,7 +96,8 @@ def show_receptive_fields(theta, P=None, n_colors=None, max_display=100, grid_wa
             ptch = ptch.reshape((img_w, img_w))
         ptch -= vmin
         ptch /= vmax-vmin
-        plt.imshow(ptch, interpolation='nearest', cmap=cm.Greys_r )
+       
+        plt.imshow(ptch, interpolation='nearest', cmap=cm.Greys_r)
         plt.axis('off')
 
     return True
@@ -204,3 +209,31 @@ def plot_images(X, fname):
 
     ## save as a .npz file
     ##np.savez(fname + '.npz', X=X)
+
+if __name__ == '__main__':
+    
+    data_source_dir = '/u/vermavik/data/CelebAsmall'
+    fname = 'temp'
+   
+    ## load the training data
+    
+    print 'loading celebA'
+    train_loader, test_loader=load_celebA(1, 100, 100, 2, data_source_dir)
+    n_colors = 3
+    spatial_width = 64
+    
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data = data.numpy()
+        """
+        means = []
+        stdevs = []
+        for i in range(3):
+            pixels = data[:,i,:,:].ravel()
+            means.append(np.mean(pixels))
+            stdevs.append(np.std(pixels))
+        
+        print("means: {}".format(means))
+        print("stdevs: {}".format(stdevs))
+        """
+        plot_images(data, fname)
+        break

@@ -131,7 +131,8 @@ def get_loader(root, split, batch_size, scale_size, num_workers=2, shuffle=True)
             transforms.CenterCrop(160),
             transforms.Scale(scale_size),
             transforms.ToTensor(),
-            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            #transforms.Normalize((0.51, 0.42, 0.37), (0.27, 0.27, 0.27))
         ]))
 
     data_loader = torch.utils.data.DataLoader(

@@ -455,7 +455,7 @@ def train(args,
     loss_fn = nn.BCELoss()
     if args.optimizer=='sgd':
         optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=0)
-    elif args.optimier=='adam':
+    elif args.optimizer=='adam':
         optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
     uidx = 0
     estop = False
