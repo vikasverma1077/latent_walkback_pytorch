@@ -24,7 +24,7 @@ import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
 
-from load_semisupervised import *
+from load_semisupervised_joint_training import *
 from utils import * 
 from distributions import *
 
@@ -770,7 +770,7 @@ def train(args,
                 #print ('meta_step', meta_step)
                 #print encode
                 loss, x_loss, log_p_reverse, KLD, z, z_tilde, x_tilde = compute_loss(x, z , target,  model, loss_fn, temperature_forward, meta_step, encode=encode)
-                loss, x_loss, log_p_reverse, KLD, z_u, z_u_tilde, x_u_tilde = compute_loss(x_u, z_u , model, loss_fn, temperature_forward, meta_step, encode=encode)
+                loss_u, x__u_loss, log_p_reverse_u, KLD_u, z_u, z_u_tilde, x_u_tilde = compute_loss(x_u, z_u , model, loss_fn, temperature_forward, meta_step, encode=encode)
                 
                     #meta_cost.append(loss)
                 #print compute_param_norm(model.conv_x_z_1.weight.data)
@@ -873,7 +873,7 @@ def train(args,
                 #print 'this'
                 
                 if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.5, 2.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                 else:
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
 

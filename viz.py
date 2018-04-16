@@ -210,6 +210,108 @@ def plot_images(X, fname):
     ## save as a .npz file
     ##np.savez(fname + '.npz', X=X)
 
+def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld,
+             train_loss_each_step, train_x_loss_each_step, train_log_p_reverse_each_step, meta_steps):
+    
+    ### plot metrics from all the steps in one plot###
+    plt.plot(np.asarray(train_loss), label='train_loss')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
+    plt.clf()
+    
+    plt.plot(np.asarray(train_x_loss), label='train_x_loss')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_x_loss.png' ))
+    plt.clf()
+    
+    plt.plot(np.asarray(train_log_p_reverse), label='train_log_p_reverse')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_log_p_reverse.png' ))
+    plt.clf()
+
+    plt.plot(np.asarray(train_kld), label='train_kld')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_kld.png' ))
+    plt.clf()
+    
+    
+    ### plot metrics from different steps in different plots##
+    for i in range(meta_steps):
+    
+        plt.plot(np.asarray(train_loss_each_step[i]), label='train_loss')
+            
+        #plt.ylim(0,2000)
+        plt.xlabel('evaluation step')
+        plt.ylabel('metrics')
+        plt.tight_layout()
+        plt.legend(loc='upper right')
+        plt.savefig(os.path.join(exp_dir, 'train_loss'+str(i)+'.png' ))
+        plt.clf()
+    
+    for i in range(meta_steps):
+        
+        plt.plot(np.asarray(train_x_loss_each_step[i]), label='train_x_loss')
+            
+        #plt.ylim(0,2000)
+        plt.xlabel('evaluation step')
+        plt.ylabel('metrics')
+        plt.tight_layout()
+        plt.legend(loc='upper right')
+        plt.savefig(os.path.join(exp_dir, 'train_x_loss'+str(i)+'.png' ))
+        plt.clf()
+        
+    for i in range(meta_steps):
+        plt.plot(np.asarray(train_log_p_reverse_each_step[i]), label='train_log_p_reverse')
+            
+        #plt.ylim(0,2000)
+        plt.xlabel('evaluation step')
+        plt.ylabel('metrics')
+        plt.tight_layout()
+        plt.legend(loc='upper right')
+        plt.savefig(os.path.join(exp_dir, 'train_log_p_reverse'+str(i)+'.png' ))
+        plt.clf()
+
+
+def plot_loss_vae(exp_dir, train_loss,  train_x_loss, train_kld):
+    
+    ### plot metrics from all the steps in one plot###
+    plt.plot(np.asarray(train_loss), label='train_loss')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
+    plt.clf()
+    
+    plt.plot(np.asarray(train_x_loss), label='train_x_loss')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_x_loss.png' ))
+    plt.clf()
+    
+    plt.plot(np.asarray(train_kld), label='train_kld')
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_kld.png' ))
+    plt.clf()
+    
+    
 if __name__ == '__main__':
     
     data_source_dir = '/u/vermavik/data/CelebAsmall'

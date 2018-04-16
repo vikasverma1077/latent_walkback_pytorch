@@ -21,6 +21,7 @@ import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
 
+from networks_lwb import *
 from load import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
@@ -66,7 +67,7 @@ def parse_args():
                         help='Dictionary string to be eval()d containing model arguments.')
     parser.add_argument('--dropout_rate', type=float, default=0.,
                         help='Rate to use for dropout during training+testing.')
-    parser.add_argument('--dataset', type=str, default='MNIST',
+    parser.add_argument('--dataset', type=str, default='celebasmall',
                         help='Name of dataset to use.')
     parser.add_argument('--data_aug', type=int, default=0)
     parser.add_argument('--plot_before_training', type=bool, default=False,
@@ -731,6 +732,7 @@ def train(args,
     
     
     model = Net(args)
+    
     if args.cuda:
         model.cuda()
     loss_fn = nn.BCELoss()
@@ -895,7 +897,7 @@ def train(args,
                 #print 'this'
                 
                 if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.5, 2.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                 else:
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
 

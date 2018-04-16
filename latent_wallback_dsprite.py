@@ -1,4 +1,4 @@
-### trains a latent walkback model on dsprite data and also computes the disentanglement metric###
+### trains a latent walkback model on dsprite data and also computes the disentanglement_dsprite_lwb metric###
 ### modifies code from train_celebA_diff_bnorm_v2.py and vae_dsprite##
 ## TO DO : everything :P
 

@@ -563,7 +563,7 @@ def train(args,
                 #print 'this'
                 
                 if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.5, 2.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                 else:
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
 

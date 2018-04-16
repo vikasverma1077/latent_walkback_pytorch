@@ -21,8 +21,8 @@ from folder import ImageFolder
 def load_data(data_aug, batch_size,workers,dataset, data_target_dir):
     
     if dataset == 'cifar10':
-        mean = [x / 255 for x in [125.3, 123.0, 113.9]]
-        std = [x / 255 for x in [63.0, 62.1, 66.7]]
+        mean = [x / 255 for x in [127.5, 127.5, 127.5]]
+        std = [x / 255 for x in [127.5, 127.5, 127.5]]
     elif dataset == 'cifar100':
         mean = [x / 255 for x in [129.3, 124.1, 112.4]]
         std = [x / 255 for x in [68.2, 65.4, 70.4]]

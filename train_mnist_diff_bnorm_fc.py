@@ -24,7 +24,7 @@ import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
 
-#from load_semisupervised import *
+#from load_semisupervised_joint_training import *
 from load import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
@@ -847,7 +847,7 @@ def train(args,
                 #print 'this'
                 
                 if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.5, 2.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                 else:
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
 

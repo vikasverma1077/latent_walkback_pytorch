@@ -122,32 +122,32 @@ def load_data(data_aug,labels_per_class, batch_size,workers,dataset, data_target
                                             [transforms.ToTensor(), transforms.Normalize(mean, std)])
     if dataset == 'cifar10':
         num_classes = 10
-        train_data = datasets.CIFAR10(data_target_dir, train=True, transform=train_transform,  download=True)
-        test_data = datasets.CIFAR10(data_target_dir, train=False, transform=test_transform,  download=True)
+        train_data = datasets.CIFAR10(data_target_dir, train=True, transform=train_transform,  target_transform=onehot(num_classes), download=True)
+        test_data = datasets.CIFAR10(data_target_dir, train=False, transform=test_transform, target_transform=onehot(num_classes), download=True)
         
     elif dataset == 'cifar100':
         num_classes = 100
-        train_data = datasets.CIFAR100(data_target_dir, train=True, transform=train_transform,  download=True)
-        test_data = datasets.CIFAR100(data_target_dir, train=False, transform=test_transform,  download=True)
+        train_data = datasets.CIFAR100(data_target_dir, train=True, transform=train_transform, target_transform=onehot(num_classes), download=True)
+        test_data = datasets.CIFAR100(data_target_dir, train=False, transform=test_transform, target_transform=onehot(num_classes), download=True)
         
     elif dataset == 'svhn':
         num_classes = 10
-        train_data = datasets.SVHN(data_target_dir, split='train', transform=train_transform,  download=True)
-        test_data = datasets.SVHN(data_target_dir, split='test', transform=test_transform,  download=True)
-        extra_data = datasets.SVHN(data_target_dir, split='extra', transform=train_transform,  download=True)
+        train_data = datasets.SVHN(data_target_dir, split='train', transform=train_transform, target_transform=onehot(num_classes), download=True)
+        test_data = datasets.SVHN(data_target_dir, split='test', transform=test_transform, target_transform=onehot(num_classes), download=True)
+        extra_data = datasets.SVHN(data_target_dir, split='extra', transform=train_transform, target_transform=onehot(num_classes), download=True)
         
     elif dataset == 'stl10':
         num_classes = 10
-        train_data = datasets.STL10(data_target_dir, split='train', transform=train_transform, download=True)
-        test_data = datasets.STL10(data_target_dir, split='test', transform=test_transform,  download=True)
+        train_data = datasets.STL10(data_target_dir, split='train', transform=train_transform, target_transform=onehot(num_classes),download=True)
+        test_data = datasets.STL10(data_target_dir, split='test', transform=test_transform, target_transform=onehot(num_classes), download=True)
         
     elif dataset == 'imagenet':
         assert False, 'Do not finish imagenet code'
     else:
         assert False, 'Do not support dataset : {}'.format(dataset)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False,
-                         num_workers=workers, pin_memory=True, sampler=get_sampler(train_data.labels, labels_per_class))
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True,
+                         num_workers=workers, pin_memory=True, sampler=get_sampler(train_data.train_labels.numpy(), labels_per_class))
     unlabelled_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True,
                          num_workers=workers, pin_memory=True)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False,
@@ -196,7 +196,7 @@ def load_mnist(data_aug, batch_size, test_batch_size,cuda, data_target_dir):
                 
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST(data_target_dir, train=True, download=True, transform=transform_train, target_transform=onehot(10)),
-        batch_size=batch_size, sampler=get_sampler(mnist_train.labels.numpy(), labels_per_class), **kwargs)
+        batch_size=batch_size, shuffle=True, sampler=get_sampler(mnist_train.train_labels.numpy(), labels_per_class), **kwargs)
     unlabelled_loader = torch.utils.data.DataLoader(
         datasets.MNIST(data_target_dir, train=True, download=True, transform=transform_train, target_transform=onehot(10)),
         batch_size=batch_size, shuffle=True,  **kwargs)
@@ -260,7 +260,7 @@ def main():
         break
     """
     
-    train_loader, unlabelled_loader, test_loader, extra_loader, num_classes = load_data(0, labels_per_class=100, batch_size=100,workers=2,dataset='svhn', data_target_dir= '/u/vermavik/data/DARC/svhn')
+    train_loader, test_loader, extra_loader, num_classes = load_data(0, batch_size=100,workers=2,dataset='svhn', data_target_dir= '/u/vermavik/data/DARC/SVHN')
     #print len(extra_loader), len(train_loader), len(test_loader)
     
     for batch_idx, (data, target) in enumerate(train_loader):

@@ -22,6 +22,7 @@ import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
 
+from networks_lwb import *
 from load import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
@@ -38,7 +39,7 @@ use_conv = True
 def parse_args():
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--dataset', type=str, default='MNIST',
+    parser.add_argument('--dataset', type=str, default='svhn',
                         help='Name of dataset to use. [mnist, svhn, celeba, celebasmall]')
     parser.add_argument('--activation', type=str, default='leakyrelu',
                         help='activation function to use in the network except the last layer of decoder')
@@ -740,7 +741,12 @@ def train(args,
     print "Width", WIDTH, spatial_width
     
     
-    model = Net(args)
+    #model = Net(args)
+    args.init_ch = 16
+    args.enc_fc_size = 128
+    args.transition_size = 256
+    args.transition_steps = 3
+    model = Net_Svhn(args, input_shape=(3,32,32))
     if args.cuda:
         model.cuda()
     loss_fn = nn.BCELoss()
@@ -904,7 +910,7 @@ def train(args,
                 #print 'this'
                 
                 if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.5, 2.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                 else:
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
 
