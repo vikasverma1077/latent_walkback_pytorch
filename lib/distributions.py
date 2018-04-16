@@ -93,7 +93,6 @@ def log_normal2(x, mean, log_var, eps=0.0):
     
     #print ('a', np.isnan(a.data.cpu().numpy()).any())
     #print ('b', np.isnan(b.data.cpu().numpy()).any())
-    
     return c - log_var/2 - (x - mean)**2 / (2 * log_var.exp_() + eps)
 
 
