@@ -3,6 +3,10 @@ import numpy as np
 import os
 import mimir
 import time
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+
 
 import torch
 import torch.nn as nn
@@ -107,6 +111,99 @@ def parse_args():
     return args, model_args
 
 
+def plot_loss(exp_dir, train_loss_list,  train_x_loss_list, train_log_p_reverse_list):
+    
+    plt.plot(np.asarray(train_loss_list), label='train_loss')
+        
+    #plt.ylim(0,2000)
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
+    plt.clf()
+    
+    plt.plot(np.asarray(train_x_loss_list), label='train_x_loss')
+        
+    #plt.ylim(0,2000)
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_x_loss.png' ))
+    plt.clf()
+    
+
+    plt.plot(np.asarray(train_log_p_reverse_list), label='train_log_p_reverse')
+        
+    #plt.ylim(0,2000)
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_log_p_reverse.png' ))
+    plt.clf()
+
+
+"""
+def compute_angle_et_norm(model,optimizer,save_dir):
+    #global optimizer
+    #global model
+    #global cos_mg_list
+    #global grad_norm_list
+
+
+    if not hasattr(compute_angle_et_norm, 'm'):
+        compute_angle_et_norm.m = {}
+        print ('this')
+
+    dot = 0
+    norm1 = 0
+    norm2 = 0
+    #print len(base_params)
+    for name, param in model.named_parameters():#base_params:
+            if id(param) not in model.ignored_params:
+                if hasattr(param.grad,'data'):
+                    g = param.grad.data
+                    if not name in compute_angle_et_norm.m.keys():
+                        compute_angle_et_norm.m[name] = g.clone()
+                        dot += torch.sum(compute_angle_et_norm.m[name]*g.clone())
+                        norm1 += torch.sum(compute_angle_et_norm.m[name]* compute_angle_et_norm.m[name])
+                        norm2 += torch.sum(g.clone()* g.clone())
+                    else:
+                        #print ('this')
+                        dot += torch.sum(compute_angle_et_norm.m[name]*g.clone())
+                        norm1 += torch.sum(compute_angle_et_norm.m[name]* compute_angle_et_norm.m[name])
+                        norm2 += torch.sum(g.clone()* g.clone())
+                        #if args.mg_m>0:
+                        #    compute_angle_et_norm.m[name].mul_(args.mg_m).add_((1.-args.mg_m)* g)
+                        #else:
+                        compute_angle_et_norm.m[name] = g.clone()
+
+    cos = dot/(np.sqrt(norm1* norm2) + 0.000001)
+
+    return cos, norm2
+
+"""
+
+def compute_grad_norm(model):
+    
+    norm = 0
+    for name, param in model.named_parameters():#base_params:
+                if hasattr(param.grad,'data'):
+                    g = param.grad.data
+                    norm += torch.sum(g.clone()* g.clone())
+                    
+    
+    return  norm
+
+
+
+def compute_param_norm(param):
+    
+    norm = torch.sum(param* param)
+    return  norm
+
 
 
 def reverse_time(scl, shft, sample_drawn, name):
@@ -147,11 +244,20 @@ class Net(nn.Module):
        
         ###### transition operator ########
         self.fc_trans_1 = nn.Linear(args.nl, 1024)
-        self.bn5 = nn.BatchNorm1d(1024)
+        self.bn5_list=nn.ModuleList()
+        print args.meta_steps
+        for _ in xrange(args.meta_steps):
+            self.bn5_list.append(nn.BatchNorm1d(1024))
+            #print _
         self.fc_trans_1_1 = nn.Linear(1024, 1024)
-        self.bn6 = nn.BatchNorm1d(1024)
+        self.bn6_list=nn.ModuleList()
+        for _ in xrange(args.meta_steps):
+            self.bn6_list.append(nn.BatchNorm1d(1024))
+        
         self.fc_trans_1_2 = nn.Linear(1024, 1024)
-        self.bn7 = nn.BatchNorm1d(1024)
+        self.bn7_list=nn.ModuleList()
+        for _ in xrange(args.meta_steps):
+            self.bn7_list.append(nn.BatchNorm1d(1024))
         
                
         ### decoder #####
@@ -186,35 +292,41 @@ class Net(nn.Module):
     def encode(self, x):
         
         c1 = self.relu(self.bn1(self.conv_x_z_1(x)))
+        #print c1
         c2 = self.relu(self.bn2(self.conv_x_z_2(c1)))
+        #print c2
         c3 = self.relu(self.bn3(self.conv_x_z_3(c2)))
-        
+        #print c3
         h1 = c3.view(-1, self.flat_shape)
         h1 = self.relu(self.bn4(self.fc_layer_1(h1)))
-        
+        #print h1
         mu = self.relu(self.fc_z_mu(h1))
-        logvar = self.relu(self.fc_z_sigma(h1))
-        
-        return mu, logvar
+        sigma = self.relu(self.fc_z_sigma(h1))
+        return mu, sigma
 
         
         
-    def reparameterize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
+    def reparameterize(self, mu, sigma):
+        std = sigma.mul(0.5).exp_()
         eps = Variable(std.data.new(std.size()).normal_())
         return eps.mul(std).add_(mu)
     
        
-    def transition (self, z, temperature):
+    def transition (self, z, temperature, step):
         #print ('z', np.isnan(z.data.cpu().numpy()).any())
-        h1 = self.relu(self.bn5(self.fc_trans_1(z)))
-        h2 = self.relu(self.bn6(self.fc_trans_1_1(h1)))
-        h3 = self.relu(self.bn7(self.fc_trans_1_2(h2)))
+        h1 = self.relu(self.bn5_list[step](self.fc_trans_1(z)))
+        #print h1
+        h2 = self.relu(self.bn6_list[step](self.fc_trans_1_1(h1)))
+        #print h2
+        h3 = self.relu(self.bn7_list[step](self.fc_trans_1_2(h2)))
+        #print h3
         h3 = torch.clamp(h3, min=0, max=5)
+        #print h3
         
         mu = self.fc_z_mu(h3)
+        #print mu
         sigma = self.fc_z_sigma(h3)
-        
+        #print sigma
         #print ('mu', np.isnan(mu.data.cpu().numpy()).any())
         #print ('sigma', np.isnan(sigma.data.cpu().numpy()).any())
         eps = Variable(mu.data.new(mu.size()).normal_())
@@ -250,20 +362,25 @@ class Net(nn.Module):
         else:
             sigma_ = Variable(torch.log(torch.FloatTensor(1).fill_(args.sigma * temperature))) + sigma
         
-        log_p_reverse = log_normal2(z, mu, sigma_, eps = 1e-6).sum(1).mean()
+        log_p_reverse = log_normal2(z, mu, sigma_, eps = 1e-6).mean()
         #print ('z', np.isnan(z.data.cpu().numpy()).any())
         #print ('log_p_reverse', log_p_reverse)
         z_new = torch.clamp(z_new, min=-4, max=4)
-        
+        #print z_new 
         return z_new, log_p_reverse, sigma, h2
         
      
     def decode (self, z_new):
+        #print z_new
         d0 = self.relu(self.bn8(self.fc_z_x_1(z_new)))
+        #print d0
         d0 = d0.view(-1, 256, 8, 8)
         d1 = self.relu(self.bn9(self.conv_z_x_2(d0)))
+        #print d1
         d2 = self.relu(self.bn10(self.conv_z_x_3(d1)))
+        #print self.conv_z_x_3(d1)
         d3 = self.sigmoid(self.conv_z_x_4(d2))
+        #print self.conv_z_x_4(d2)
         shape = d3.data.shape
         p =  d3.view(-1, shape[1]*shape[2]*shape[3])
         
@@ -272,7 +389,7 @@ class Net(nn.Module):
         #x_loss =  -T.nnet.binary_crossentropy(p, x).sum(axis=1)
         return p
     
-    def sample(self, z, temperature):
+    def sample(self, z, temperature,step):
         d0 = self.relu(self.bn8(self.fc_z_x_1(z)))
         d0 = d0.view(-1, 256, 8, 8)
         d1 = self.relu(self.bn9(self.conv_z_x_2(d0)))
@@ -281,7 +398,7 @@ class Net(nn.Module):
         shape = d3.data.shape
         x_new =  d3.view(-1, shape[1]*shape[2]*shape[3])
     
-        z_new, log_p_reverse, sigma, h2 = self.transition( z , temperature)
+        z_new, log_p_reverse, sigma, h2 = self.transition( z , temperature, step)
         x_tilde = self.decode(z_new)
         
         return x_tilde, x_new, z_new 
@@ -289,16 +406,22 @@ class Net(nn.Module):
 
 
 
-def compute_loss(x, model, loss_fn, start_temperature):
+def compute_loss(x, z, model, loss_fn, start_temperature, meta_step, encode= False):
     temperature = start_temperature
-    mu, logvar = model.encode(x)
-    z = model.reparameterize(mu, logvar)
+    if encode==True:
+        mu, sigma = model.encode(x)
+        z = model.reparameterize(mu, sigma)
+    #print z
     #print ('step', 0)
     #print ('z', np.isnan(z.data.cpu().numpy()).any())
-    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature)
+    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, meta_step)
     x_tilde = model.decode(z_tilde)
+    #print x_tilde.shape
+    #print x.shape
+    #return 1
     x_loss = loss_fn(x_tilde,x.view(-1, 3*64*64))## sum over axis=1
-    #print x_loss.data.shape
+    #print x_loss
+    #return 1
     loss = -log_p_reverse + x_loss
     #print ('x_loss', x_loss)
     #print ('log_p_reverse', log_p_reverse)
@@ -306,16 +429,18 @@ def compute_loss(x, model, loss_fn, start_temperature):
     z_states = [z_tilde]
      
     total_loss = loss
-    
+    total_x_loss = x_loss
+    total_log_p_reverse = -log_p_reverse
     #print args.num_steps
+    """
     for i in range(args.num_steps - 1):
         temperature *= args.temperature_factor
         x = Variable(x_tilde.data, requires_grad=False)
-        mu, logvar = model.encode(x_tilde.view(-1, 3, 64, 64))
-        z = model.reparameterize(mu, logvar)
+        mu, sigma = model.encode(x_tilde.view(-1, 3, 64, 64))
+        z = model.reparameterize(mu, sigma)
         #print ('step', i+1)
         #print ('z', np.isnan(z.data.cpu().numpy()).any())
-        z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature)
+        z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, meta_step)
         x_tilde = model.decode(z_tilde)
         x_loss = loss_fn(x_tilde,x)## sum over axis=1
         loss = -log_p_reverse + x_loss
@@ -324,18 +449,23 @@ def compute_loss(x, model, loss_fn, start_temperature):
         x_states.append(x_tilde)
         z_states.append(z_tilde)
         total_loss = total_loss+ loss
+        total_x_loss = total_x_loss + x_loss
+        total_log_p_reverse = total_log_p_reverse - log_p_reverse
      #loss = -T.mean(sum(log_p_reverse_list, 0.0))
-    #loss = - total_loss/args.num_steps
+    """
     loss = total_loss/args.num_steps
-    return loss
+    x_loss = total_x_loss/args.num_steps
+    log_p_reverse = total_log_p_reverse/args.num_steps
+    
+    return loss, x_loss, log_p_reverse, z, z_tilde, x_tilde
 
 
 
-def forward_diffusion(x, model, loss_fn,temperature):
+def forward_diffusion(x, model, loss_fn,temperature, step):
     x = Variable(x.data, requires_grad=False)
-    mu, logvar = model.encode(x)
-    z = model.reparameterize(mu, logvar)
-    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature)
+    mu, sigma = model.encode(x)
+    z = model.reparameterize(mu, sigma)
+    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, step)
     x_tilde = model.decode(z_tilde)
     x_loss = loss_fn (x_tilde,x)## sum over axis=1
     total_loss = log_p_reverse + x_loss
@@ -471,16 +601,22 @@ def train(args,
     count_sample = 1
    
     
+    
+    train_loss = []
+    train_x_loss = []
+    train_log_p_reverse = []
+    
     for epoch in range(max_epochs):
         
         for batch_idx, (data, target) in enumerate(train_loader):
-            
-            #data = torch.randn(500,3,64,64)
-            #target = torch.randn(500,1)
-            #print (batch_idx)
+        #for batch_idx in xrange(100):   
+        #    data = torch.randn(100,3,64,64)
+        #    target = torch.randn(100,1)
+            print (batch_idx)
             if args.cuda:
                 data, target = data.cuda(), target.cuda()
             data, target = Variable(data), Variable(target)
+            
             
             t0 = time.time()
             #batch_index += 1
@@ -488,23 +624,36 @@ def train(args,
             #print (n_samples)
             temperature_forward = args.temperature
             meta_cost = []
+            x = data
+            z = None
+            encode = True
             for meta_step in range(0, args.meta_steps):
                 #print ('meta_step', meta_step)
-                loss= compute_loss(data, model, loss_fn, temperature_forward)
+                #print encode
+                loss, x_loss, log_p_reverse, z, z_tilde, x_tilde = compute_loss(x, z , model, loss_fn, temperature_forward, meta_step, encode=encode)
                     #meta_cost.append(loss)
-                #print loss
+                print compute_param_norm(model.conv_x_z_1.weight.data)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            
+                print ('epoch=', epoch, 'batch_id=', batch_idx, 'meta_step=',meta_step, 'norm=', compute_grad_norm(model))
+                
+                
+                train_loss.append(loss.data[0])
+                train_x_loss.append(x_loss.data[0])
+                train_log_p_reverse.append(log_p_reverse.data[0])
                 if args.meta_steps>1:
-                    data, _, _, _, _, _, _ = forward_diffusion(data, model, loss_fn,temperature_forward)
-                    data = data.view(-1,3, 64,64)
-                    data = Variable(data.data, requires_grad=False)
+                    #data, _, _, _, _, _, _ = forward_diffusion(data, model, loss_fn,temperature_forward,meta_step)
+                    #data = data.view(-1,3, 64,64)
+                    #data = Variable(data.data, requires_grad=False)
+                    x =  Variable(x_tilde.data.view(-1, 3, 64, 64), requires_grad=False)
+                    z = Variable(z_tilde.data, requires_grad=False)
+                    encode = False
                     temperature_forward *= args.temperature_factor
                     
+           
                 #print loss.data
-            print loss.data    
+            #print loss.data    
             
             #cost = sum(meta_cost) / len(meta_cost)
             #print cost
@@ -517,6 +666,8 @@ def train(args,
             
             #batch_idx=0
             if batch_idx%100==0:
+                plot_loss(model_dir, train_loss, train_x_loss, train_log_p_reverse)
+                
                 count_sample += 1
                 temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps -1 ))
                 temperature_forward = args.temperature
@@ -526,14 +677,12 @@ def train(args,
                 data_forward_diffusion = data
                 for num_step in range(args.num_steps * args.meta_steps):
                     print "Forward temperature", temperature_forward
-                    plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
-                    data_forward_diffusion, _, _, _, _, _, _ = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward)
+                    data_forward_diffusion, _, _, _, _, _, _ = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward, num_step)
                     #print data_forward_diffusion.shape
                     #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
                     data_forward_diffusion = data_forward_diffusion.view(-1,3, 64,64)#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                    #print data_forward_diffusion.shape
-                    #plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
-
+                    plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
+                    
                     temperature_forward = temperature_forward * args.temperature_factor;
                 
                 print "PLOTTING ORIGINAL IMAGE"
@@ -563,7 +712,7 @@ def train(args,
                 #print 'this'
                 
                 if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    z_sampled = np.random.normal(0.5, 2.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                 else:
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
 
@@ -573,8 +722,8 @@ def train(args,
                 if args.cuda:
                     z = z.cuda()
                     z = Variable(z)
-                for i in range(args.num_steps*args.meta_steps + args.extra_steps):
-                    z_new_to_x, z_to_x, z_new  = model.sample(z, temperature)
+                for i in range(args.num_steps*args.meta_steps):# + args.extra_steps):
+                    z_new_to_x, z_to_x, z_new  = model.sample(z, temperature, args.num_steps*args.meta_steps -i - 1)
                     #print 'On step number, using temperature', i, temperature
                     reverse_time(scl, shft, z_new_to_x.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch) + '_step_' + str(i))
                     

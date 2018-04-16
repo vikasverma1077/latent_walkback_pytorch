@@ -1,6 +1,6 @@
 import math
 import theano.tensor as T
-
+import numpy as np
 
 c = - 0.5 * math.log(2*math.pi)
 
@@ -88,6 +88,12 @@ def log_normal2(x, mean, log_var, eps=0.0):
     log_normal : using standard deviation parameterization
     log_normal1 : using variance parameterization
     """
+    #a= log_var/2
+    #b= (x - mean)**2 / (2 * log_var.exp_() + eps)
+    
+    #print ('a', np.isnan(a.data.cpu().numpy()).any())
+    #print ('b', np.isnan(b.data.cpu().numpy()).any())
+    
     return c - log_var/2 - (x - mean)**2 / (2 * log_var.exp_() + eps)
 
 
