@@ -73,7 +73,7 @@ def parse_args():
                         'Will be decayed until it\'s 1e-5.')
     parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
-    parser.add_argument('--optimizer', type = str, default = 'sgd',
+    parser.add_argument('--optimizer', type = str, default = 'adam',
                         help='optimizer we are going to use!!')
     parser.add_argument('--grad_max_norm', type=float, default=5.0,
                         help='max value of grad norm used for gradient clipping')

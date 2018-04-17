@@ -55,7 +55,7 @@ def parse_args():
                         'Will be decayed until it\'s 1e-5.')
     parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
-    parser.add_argument('--optimizer', type = str, default = 'sgd',
+    parser.add_argument('--optimizer', type = str, default = 'adam',
                         help='optimizer we are going to use!!')
      
                         
@@ -135,7 +135,7 @@ def compute_loss(x, model, loss_fn):
     
     KLD = -0.5 * torch.sum(1 + sigma - mu.pow(2) - sigma.exp())
     KLD /= args.batch_size 
-    loss = x_loss + KLD
+    loss = x_loss + 0.1*KLD
     
     return loss, x_loss, KLD
 
@@ -225,8 +225,10 @@ def train(args, lrate):
         
         break ### TO DO : calculate statistics on whole data
     
-    
-    model = VAE(args, imgSize=input_shape)
+    if dataset == 'svhn':
+        model = VAE_svhn(args, imgSize=input_shape)
+    else:
+        model = VAE(args, imgSize=input_shape)
     if args.cuda:
         model.cuda()
     loss_fn = nn.BCELoss()
@@ -257,6 +259,7 @@ def train(args, lrate):
     for epoch in range(args.epochs):
         print ('epoch', epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
+            #print data.min(), data.max()
             if args.cuda:
                 data, target = data.cuda(), target.cuda()
             data, target = Variable(data), Variable(target)

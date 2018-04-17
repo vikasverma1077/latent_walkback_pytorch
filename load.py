@@ -42,11 +42,9 @@ def load_data(data_aug, batch_size,workers,dataset, data_target_dir):
         test_transform = transforms.Compose(
                                             [transforms.ToTensor(), transforms.Normalize(mean, std)])
     else:
-        train_transform = transforms.Compose(
-                                             [ transforms.ToTensor(),
-                                              transforms.Normalize(mean, std)])
-        test_transform = transforms.Compose(
-                                            [transforms.ToTensor(), transforms.Normalize(mean, std)])
+        train_transform = transforms.Compose([ transforms.ToTensor()])#,
+                                              #transforms.Normalize(mean, std)])
+        test_transform = transforms.Compose([transforms.ToTensor()])#, transforms.Normalize(mean, std)])
     if dataset == 'cifar10':
         train_data = datasets.CIFAR10(data_target_dir, train=True, transform=train_transform, download=True)
         test_data = datasets.CIFAR10(data_target_dir, train=False, transform=test_transform, download=True)

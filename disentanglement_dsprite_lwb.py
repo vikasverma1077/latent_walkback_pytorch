@@ -70,7 +70,7 @@ def parse_args():
                         'Will be decayed until it\'s 1e-5.')
     parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
-    parser.add_argument('--optimizer', type = str, default = 'sgd',
+    parser.add_argument('--optimizer', type = str, default = 'adam',
                         help='optimizer we are going to use!!')
     parser.add_argument('--grad_max_norm', type=float, default=5.0,
                         help='max value of grad norm used for gradient clipping')
@@ -507,7 +507,7 @@ def train(args,lrate):
         optimizer_transition = optim.SGD(model.transition_params, lr=args.lr, momentum=args.momentum, weight_decay=0)
         optimizer_decoder = optim.SGD(model.decoder_params, lr=args.lr, momentum=args.momentum, weight_decay=0)
     elif args.optimizer=='adam':
-        optimizer_encoder = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+        optimizer_encoder = optim.Adam(model.encoder_params, lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
         optimizer_transition = optim.Adam(model.transition_params, lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
         optimizer_decoder = optim.Adam(model.decoder_params, lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
     print  'Number of steps....'
@@ -554,7 +554,7 @@ def train(args,lrate):
                 optimizer_transition.zero_grad()
                 optimizer_decoder.zero_grad()
                 loss.backward()
-                total_norm = clip_grad_norm(model.parameters(), args.grad_max_norm)
+                #total_norm = clip_grad_norm(model.parameters(), args.grad_max_norm)
                 #print ('step', meta_step, total_norm)
                 if encode==True:
                     optimizer_encoder.step()
@@ -598,7 +598,7 @@ def train(args,lrate):
         torch.save(model, model_dir+'/model.pt')
         #for i in range(args.num_steps*args.meta_steps):
         #    get_disentanglement_score(model_dir, step=i+1)
-        get_disentanglement_score(epoch, model_dir, filep, step=1)
+        get_disentanglement_score(epoch, model_dir, filep, step=10) ## step index starts from 1
     
     
 if __name__ == '__main__':
