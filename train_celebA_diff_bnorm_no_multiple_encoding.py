@@ -14,7 +14,11 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torchvision import datasets, transforms
 import torch.optim as optim
+<<<<<<< HEAD
+
+=======
 from torch.nn.utils.clip_grad import clip_grad_norm
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
 
 from viz import plot_images
 import sys
@@ -36,6 +40,10 @@ use_conv = True
 
 def parse_args():
     parser = argparse.ArgumentParser()
+<<<<<<< HEAD
+    parser.add_argument('--batch_size', default=500, type=int,
+                        help='Batch size')
+=======
     parser.add_argument('--activation', type=str, default='relu',
                         help='activation function to use in the network except the last layer of decoder')
     parser.add_argument('--epochs', type = int, default = 10,
@@ -43,6 +51,7 @@ def parse_args():
     parser.add_argument('--batch_size', default=500, type=int,
                         help='Batch size')
     parser.add_argument('--encode_every_step', type=int, default=0)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     parser.add_argument('--lr', default=0.0001, type=float,
                         help='Initial learning rate. ' + \
                         'Will be decayed until it\'s 1e-5.')
@@ -69,9 +78,12 @@ def parse_args():
                         help='Number of transition steps.')
     parser.add_argument('--temperature', type=float, default=1.0,
                         help='Standard deviation of the diffusion process.')
+<<<<<<< HEAD
+=======
     
     parser.add_argument('--grad_max_norm', type=float, default=5.0,
                         help='max value of grad norm used for gradient clipping')
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     parser.add_argument('--alpha', type=float, default=0.5,
                         help='alpha factor')
     parser.add_argument('--dims', default=[4096], type=int,
@@ -95,18 +107,25 @@ def parse_args():
                         help='How much temperature must be scaled')
     parser.add_argument('--sigma', type = float, default = 0.00001,
                         help='How much Noise should be added at step 1')
+<<<<<<< HEAD
+=======
     parser.add_argument('--alpha1', type=float, default=1.0,help='coefficient for reconstruction loss')
     parser.add_argument('--alpha2', type=float, default=0.01,help='coefficient for log_p_reverse')
     parser.add_argument('--alpha3', type=float, default=1.0,help='coefficient for KLD')
     
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     parser.add_argument('--use_decoder', type = bool, default = True,
                         help='whether should we use decoder')
     parser.add_argument('--use_encoder', type = bool, default = True,
                         help='whether should we use encoder')
     parser.add_argument('--nl', type = int, default = 512,
                         help='Size of Latent Size')
+<<<<<<< HEAD
+    
+=======
     parser.add_argument('--job_id', type=str, default='')
     parser.add_argument('--add_name', type=str, default='')
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     
     parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
@@ -124,6 +143,13 @@ def parse_args():
     return args, model_args
 
 
+<<<<<<< HEAD
+def plot_loss(exp_dir, train_loss_list,  train_x_loss_list, train_log_p_reverse_list):
+    
+    plt.plot(np.asarray(train_loss_list), label='train_loss')
+        
+    #plt.ylim(0,2000)
+=======
 ##############################
 def experiment_name(dataset='celebA',
                     act = 'relu',
@@ -163,6 +189,7 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     
     ### plot metrics from all the steps in one plot###
     plt.plot(np.asarray(train_loss), label='train_loss')
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
     plt.tight_layout()
@@ -170,7 +197,13 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
     plt.clf()
     
+<<<<<<< HEAD
+    plt.plot(np.asarray(train_x_loss_list), label='train_x_loss')
+        
+    #plt.ylim(0,2000)
+=======
     plt.plot(np.asarray(train_x_loss), label='train_x_loss')
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
     plt.tight_layout()
@@ -178,7 +211,14 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     plt.savefig(os.path.join(exp_dir, 'train_x_loss.png' ))
     plt.clf()
     
+<<<<<<< HEAD
+
+    plt.plot(np.asarray(train_log_p_reverse_list), label='train_log_p_reverse')
+        
+    #plt.ylim(0,2000)
+=======
     plt.plot(np.asarray(train_log_p_reverse), label='train_log_p_reverse')
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
     plt.tight_layout()
@@ -186,6 +226,50 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     plt.savefig(os.path.join(exp_dir, 'train_log_p_reverse.png' ))
     plt.clf()
 
+<<<<<<< HEAD
+
+"""
+def compute_angle_et_norm(model,optimizer,save_dir):
+    #global optimizer
+    #global model
+    #global cos_mg_list
+    #global grad_norm_list
+
+
+    if not hasattr(compute_angle_et_norm, 'm'):
+        compute_angle_et_norm.m = {}
+        print ('this')
+
+    dot = 0
+    norm1 = 0
+    norm2 = 0
+    #print len(base_params)
+    for name, param in model.named_parameters():#base_params:
+            if id(param) not in model.ignored_params:
+                if hasattr(param.grad,'data'):
+                    g = param.grad.data
+                    if not name in compute_angle_et_norm.m.keys():
+                        compute_angle_et_norm.m[name] = g.clone()
+                        dot += torch.sum(compute_angle_et_norm.m[name]*g.clone())
+                        norm1 += torch.sum(compute_angle_et_norm.m[name]* compute_angle_et_norm.m[name])
+                        norm2 += torch.sum(g.clone()* g.clone())
+                    else:
+                        #print ('this')
+                        dot += torch.sum(compute_angle_et_norm.m[name]*g.clone())
+                        norm1 += torch.sum(compute_angle_et_norm.m[name]* compute_angle_et_norm.m[name])
+                        norm2 += torch.sum(g.clone()* g.clone())
+                        #if args.mg_m>0:
+                        #    compute_angle_et_norm.m[name].mul_(args.mg_m).add_((1.-args.mg_m)* g)
+                        #else:
+                        compute_angle_et_norm.m[name] = g.clone()
+
+    cos = dot/(np.sqrt(norm1* norm2) + 0.000001)
+
+    return cos, norm2
+
+"""
+
+=======
     plt.plot(np.asarray(train_kld), label='train_kld')
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
@@ -233,6 +317,7 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
 
     
     
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
 def compute_grad_norm(model):
     
     norm = 0
@@ -269,6 +354,56 @@ class Net(nn.Module):
         kernel_size = 5
         padsize = 2
         
+<<<<<<< HEAD
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+        
+        ### Encoder ######
+               
+        self.conv_x_z_1 = nn.Conv2d(3, 64, kernel_size=kernel_size, stride=2, padding=padsize)
+        self.bn1 = nn.BatchNorm2d(64) 
+        self.conv_x_z_2 = nn.Conv2d(64, 128, kernel_size=kernel_size, stride=2, padding=padsize)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv_x_z_3 = nn.Conv2d(128, 256, kernel_size=kernel_size, stride=2, padding=padsize)
+        self.bn3 = nn.BatchNorm2d(256)
+        
+        self.flat_shape = self.get_flat_shape_1(input_shape) 
+        self.fc_layer_1 = nn.Linear(self.flat_shape, 1024)
+        self.bn4 = nn.BatchNorm1d(1024)
+        
+        self.fc_z_mu = nn.Linear(1024, args.nl)
+        self.fc_z_sigma = nn.Linear(1024, args.nl)
+        
+       
+        ###### transition operator ########
+        self.fc_trans_1 = nn.Linear(args.nl, 1024)
+        self.bn5_list=nn.ModuleList()
+        print args.meta_steps
+        for _ in xrange(args.meta_steps):
+            self.bn5_list.append(nn.BatchNorm1d(1024))
+            #print _
+        self.fc_trans_1_1 = nn.Linear(1024, 1024)
+        self.bn6_list=nn.ModuleList()
+        for _ in xrange(args.meta_steps):
+            self.bn6_list.append(nn.BatchNorm1d(1024))
+        
+        self.fc_trans_1_2 = nn.Linear(1024, 1024)
+        self.bn7_list=nn.ModuleList()
+        for _ in xrange(args.meta_steps):
+            self.bn7_list.append(nn.BatchNorm1d(1024))
+        
+               
+        ### decoder #####
+        self.fc_z_x_1 = nn.Linear(args.nl, 256*8*8)
+        self.bn8 = nn.BatchNorm1d(256*8*8)
+        self.conv_z_x_2 = nn.ConvTranspose2d(256, 128, kernel_size=4, stride= 2, padding=1)
+        self.bn9 = nn.BatchNorm2d(128)
+        self.conv_z_x_3 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride= 2, padding=1)
+        self.bn10 = nn.BatchNorm2d(64)
+        self.conv_z_x_4 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride= 2, padding=1)
+        self.bn11 = nn.BatchNorm2d(3)
+        
+=======
         if args.activation == 'relu':
             self.act = nn.ReLU()
         elif args.activation == 'leakyrelu':
@@ -398,6 +533,7 @@ class Net(nn.Module):
             self.bn13_list.append(nn.BatchNorm2d(3))
             self.decoder_params.extend(self.bn13_list[i].parameters())
             
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
            
             
     def get_flat_shape_1(self, input_shape):
@@ -417,6 +553,21 @@ class Net(nn.Module):
         
         return dummy.data.shape
     
+<<<<<<< HEAD
+    def encode(self, x):
+        
+        c1 = self.relu(self.bn1(self.conv_x_z_1(x)))
+        #print c1
+        c2 = self.relu(self.bn2(self.conv_x_z_2(c1)))
+        #print c2
+        c3 = self.relu(self.bn3(self.conv_x_z_3(c2)))
+        #print c3
+        h1 = c3.view(-1, self.flat_shape)
+        h1 = self.relu(self.bn4(self.fc_layer_1(h1)))
+        #print h1
+        mu = self.relu(self.fc_z_mu(h1))
+        sigma = self.relu(self.fc_z_sigma(h1))
+=======
     def encode(self, x, step):
         
         c1 = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
@@ -430,6 +581,7 @@ class Net(nn.Module):
         #print h1
         mu = self.bn5_list[step](self.fc_z_mu(h1))
         sigma = self.bn6_list[step](self.fc_z_sigma(h1))
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
         return mu, sigma
 
         
@@ -442,6 +594,20 @@ class Net(nn.Module):
        
     def transition (self, z, temperature, step):
         #print ('z', np.isnan(z.data.cpu().numpy()).any())
+<<<<<<< HEAD
+        h1 = self.relu(self.bn5_list[step](self.fc_trans_1(z)))
+        #print h1
+        h2 = self.relu(self.bn6_list[step](self.fc_trans_1_1(h1)))
+        #print h2
+        h3 = self.relu(self.bn7_list[step](self.fc_trans_1_2(h2)))
+        #print h3
+        h3 = torch.clamp(h3, min=0, max=5)
+        #print h3
+        
+        mu = self.fc_z_mu(h3)
+        #print mu
+        sigma = self.fc_z_sigma(h3)
+=======
         #    print z.requires_grad
         h1 = self.act(self.bn7_list[step](self.fc_trans_1(z)))
         #print h1
@@ -458,6 +624,7 @@ class Net(nn.Module):
         mu = self.bn5_list[step](self.fc_z_mu(h3))  #### why not non-linearity applied here
         #print mu
         sigma = self.bn6_list[step](self.fc_z_sigma(h3))
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
         #print sigma
         #print ('mu', np.isnan(mu.data.cpu().numpy()).any())
         #print ('sigma', np.isnan(sigma.data.cpu().numpy()).any())
@@ -499,6 +666,21 @@ class Net(nn.Module):
         #print ('log_p_reverse', log_p_reverse)
         z_new = torch.clamp(z_new, min=-4, max=4)
         #print z_new 
+<<<<<<< HEAD
+        return z_new, log_p_reverse, sigma, h2
+        
+     
+    def decode (self, z_new):
+        #print z_new
+        d0 = self.relu(self.bn8(self.fc_z_x_1(z_new)))
+        #print d0
+        d0 = d0.view(-1, 256, 8, 8)
+        d1 = self.relu(self.bn9(self.conv_z_x_2(d0)))
+        #print d1
+        d2 = self.relu(self.bn10(self.conv_z_x_3(d1)))
+        #print self.conv_z_x_3(d1)
+        d3 = self.sigmoid(self.conv_z_x_4(d2))
+=======
         return z_new, log_p_reverse, mu, sigma
         
      
@@ -512,6 +694,7 @@ class Net(nn.Module):
         d2 = self.act(self.bn12_list[step](self.conv_z_x_3(d1)))
         #print self.conv_z_x_3(d1)
         d3 = self.sigmoid(self.bn13_list[step](self.conv_z_x_4(d2)))
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
         #print self.conv_z_x_4(d2)
         shape = d3.data.shape
         p =  d3.view(-1, shape[1]*shape[2]*shape[3])
@@ -522,16 +705,28 @@ class Net(nn.Module):
         return p
     
     def sample(self, z, temperature,step):
+<<<<<<< HEAD
+        d0 = self.relu(self.bn8(self.fc_z_x_1(z)))
+        d0 = d0.view(-1, 256, 8, 8)
+        d1 = self.relu(self.bn9(self.conv_z_x_2(d0)))
+        d2 = self.sigmoid(self.bn10(self.conv_z_x_3(d1)))
+        d3 = self.sigmoid(self.conv_z_x_4(d2))
+=======
         d0 = self.act(self.bn10_list[step](self.fc_z_x_1(z)))
         d0 = d0.view(-1, 256, 8, 8)
         d1 = self.act(self.bn11_list[step](self.conv_z_x_2(d0)))
         d2 = self.act(self.bn12_list[step](self.conv_z_x_3(d1)))
         d3 = self.sigmoid(self.bn13_list[step](self.conv_z_x_4(d2)))
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
         shape = d3.data.shape
         x_new =  d3.view(-1, shape[1]*shape[2]*shape[3])
     
         z_new, log_p_reverse, sigma, h2 = self.transition( z , temperature, step)
+<<<<<<< HEAD
+        x_tilde = self.decode(z_new)
+=======
         x_tilde = self.decode(z_new,step)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
         
         return x_tilde, x_new, z_new 
         
@@ -539,25 +734,39 @@ class Net(nn.Module):
 
 
 def compute_loss(x, z, model, loss_fn, start_temperature, meta_step, encode= False):
+<<<<<<< HEAD
+    temperature = start_temperature
+    if encode==True:
+        mu, sigma = model.encode(x)
+=======
     
     
     temperature = start_temperature
     if encode==True:
         #print 'this'
         mu, sigma = model.encode(x, meta_step)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
         z = model.reparameterize(mu, sigma)
     #print z
     #print ('step', 0)
     #print ('z', np.isnan(z.data.cpu().numpy()).any())
+<<<<<<< HEAD
+    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, meta_step)
+    x_tilde = model.decode(z_tilde)
+=======
     #print x .requires_grad
     z_tilde, log_p_reverse,mu, sigma = model.transition( z, temperature, meta_step)
     x_tilde = model.decode(z_tilde, meta_step)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     #print x_tilde.shape
     #print x.shape
     #return 1
     x_loss = loss_fn(x_tilde,x.view(-1, 3*64*64))## sum over axis=1
     #print x_loss
     #return 1
+<<<<<<< HEAD
+    loss = -log_p_reverse + x_loss
+=======
     loss =  -log_p_reverse*args.alpha2 + x_loss*args.alpha1 
     
     if meta_step==args.meta_steps-1:
@@ -565,16 +774,24 @@ def compute_loss(x, z, model, loss_fn, start_temperature, meta_step, encode= Fal
         loss = loss + KLD*args.alpha3
     else:
         KLD = None
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     #print ('x_loss', x_loss)
     #print ('log_p_reverse', log_p_reverse)
     x_states = [x_tilde]
     z_states = [z_tilde]
+<<<<<<< HEAD
+     
+    total_loss = loss
+    total_x_loss = x_loss
+    total_log_p_reverse = -log_p_reverse
+=======
     
     """ 
     total_loss = loss
     total_x_loss = x_loss
     total_log_p_reverse = -log_p_reverse
     """
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     #print args.num_steps
     """
     for i in range(args.num_steps - 1):
@@ -597,21 +814,36 @@ def compute_loss(x, z, model, loss_fn, start_temperature, meta_step, encode= Fal
         total_log_p_reverse = total_log_p_reverse - log_p_reverse
      #loss = -T.mean(sum(log_p_reverse_list, 0.0))
     """
+<<<<<<< HEAD
+    loss = total_loss/args.num_steps
+    x_loss = total_x_loss/args.num_steps
+    log_p_reverse = total_log_p_reverse/args.num_steps
+    
+    return loss, x_loss, log_p_reverse, z, z_tilde, x_tilde
+=======
     """
     loss = total_loss/args.num_steps
     x_loss = total_x_loss/args.num_steps
     log_p_reverse = total_log_p_reverse/args.num_steps
     """
     return loss, x_loss, log_p_reverse, KLD,  z, z_tilde, x_tilde
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
 
 
 
 def forward_diffusion(x, model, loss_fn,temperature, step):
     x = Variable(x.data, requires_grad=False)
+<<<<<<< HEAD
+    mu, sigma = model.encode(x)
+    z = model.reparameterize(mu, sigma)
+    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, step)
+    x_tilde = model.decode(z_tilde)
+=======
     mu, sigma = model.encode(x, step)
     z = model.reparameterize(mu, sigma)
     z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, step)
     x_tilde = model.decode(z_tilde,step)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     x_loss = loss_fn (x_tilde,x)## sum over axis=1
     total_loss = log_p_reverse + x_loss
     
@@ -620,7 +852,11 @@ def forward_diffusion(x, model, loss_fn,temperature, step):
 
 
 
+<<<<<<< HEAD
+##############################
+=======
 
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
 
 
 def train(args,
@@ -635,9 +871,14 @@ def train(args,
     tmp='/tmp/vermav1/'
     home='/u/79/vermav1/unix/'
     """
+<<<<<<< HEAD
+    dataset='celebA'
+    data_source_dir = home+'data/CelebA/'
+=======
     
     dataset = args.dataset
     data_source_dir = home+'data/'+dataset+'/'
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     """
     if not os.path.exists(data_source_dir):
         os.makedirs(data_source_dir)
@@ -645,6 +886,24 @@ def train(args,
     copy_tree(data_source_dir, data_target_dir)
     """
     ### set up the experiment directories########
+<<<<<<< HEAD
+    """
+    exp_name=experiment_name(args.epochs,
+                    args.batch_size,
+                    args.test_batch_size,
+                    args.lr,
+                    args.momentum, 
+                    args.alpha1,
+                    args.alpha2,
+                    args.alpha3,
+                    args.data_aug,
+                    args.job_id,
+                    args.add_name)
+    """
+    exp_name = 'temp'
+    temp_model_dir = tmp+'experiments/HVWB/'+dataset+'/model/'+ exp_name
+    temp_result_dir = tmp+'experiments/HVWB/'+dataset+'/results/'+ exp_name
+=======
     
     
     exp_name=experiment_name(dataset = args.dataset,
@@ -662,16 +921,25 @@ def train(args,
     
     #temp_model_dir = tmp+'experiments/HVWB/'+dataset+'/model/'+ exp_name
     #temp_result_dir = tmp+'experiments/HVWB/'+dataset+'/results/'+ exp_name
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     model_dir = home+'experiments/HVWB/'+dataset+'/model/'+ exp_name
     result_dir = home+'experiments/HVWB/'+dataset+'/results/'+ exp_name
     
     
+<<<<<<< HEAD
+    if not os.path.exists(temp_model_dir):
+        os.makedirs(temp_model_dir)
+    
+    if not os.path.exists(temp_result_dir):
+        os.makedirs(temp_result_dir)
+=======
     
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     
     #if not os.path.exists(temp_result_dir):
     #    os.makedirs(temp_result_dir)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     """   
     #copy_script_to_folder(os.path.abspath(__file__), temp_result_dir)
     result_path = os.path.join(temp_result_dir , 'out.txt')
@@ -711,7 +979,11 @@ def train(args,
     ## load the training data
     
     print 'loading celebA'
+<<<<<<< HEAD
+    train_loader, test_loader=load_celebA(args.data_aug, args.batch_size, args.batch_size,args.cuda, data_source_dir)
+=======
     train_loader, test_loader=load_celebA(args.data_aug, args.batch_size, args.batch_size, args.cuda, data_source_dir)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     n_colors = 3
     spatial_width = 64
     
@@ -732,6 +1004,15 @@ def train(args,
         model.cuda()
     loss_fn = nn.BCELoss()
     if args.optimizer=='sgd':
+<<<<<<< HEAD
+        optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=0)
+    elif args.optimizer=='adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+    uidx = 0
+    estop = False
+    bad_counter = 0
+    max_epochs = 100
+=======
         optimizer_encoder = optim.SGD(model.encoder_params, lr=args.lr, momentum=args.momentum, weight_decay=0)
         optimizer_transition = optim.SGD(model.transition_params, lr=args.lr, momentum=args.momentum, weight_decay=0)
         optimizer_decoder = optim.SGD(model.decoder_params, lr=args.lr, momentum=args.momentum, weight_decay=0)
@@ -742,6 +1023,7 @@ def train(args,
     uidx = 0
     estop = False
     bad_counter = 0
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     batch_index = 1
     n_samples = 0
     print  'Number of steps....'
@@ -752,6 +1034,20 @@ def train(args,
     count_sample = 1
    
     
+<<<<<<< HEAD
+    
+    train_loss = []
+    train_x_loss = []
+    train_log_p_reverse = []
+    
+    for epoch in range(max_epochs):
+        
+        for batch_idx, (data, target) in enumerate(train_loader):
+        #for batch_idx in xrange(100):   
+        #    data = torch.randn(100,3,64,64)
+        #    target = torch.randn(100,1)
+            print (batch_idx)
+=======
     #### for saving metrics for all steps ###
     train_loss = []
     train_x_loss = []
@@ -772,6 +1068,7 @@ def train(args,
     for epoch in range(args.epochs):
         print ('epoch', epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
             if args.cuda:
                 data, target = data.cuda(), target.cuda()
             data, target = Variable(data), Variable(target)
@@ -789,6 +1086,20 @@ def train(args,
             for meta_step in range(0, args.meta_steps):
                 #print ('meta_step', meta_step)
                 #print encode
+<<<<<<< HEAD
+                loss, x_loss, log_p_reverse, z, z_tilde, x_tilde = compute_loss(x, z , model, loss_fn, temperature_forward, meta_step, encode=encode)
+                    #meta_cost.append(loss)
+                print compute_param_norm(model.conv_x_z_1.weight.data)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                print ('epoch=', epoch, 'batch_id=', batch_idx, 'meta_step=',meta_step, 'norm=', compute_grad_norm(model))
+                
+                
+                train_loss.append(loss.data[0])
+                train_x_loss.append(x_loss.data[0])
+                train_log_p_reverse.append(log_p_reverse.data[0])
+=======
                 loss, x_loss, log_p_reverse, KLD, z, z_tilde, x_tilde = compute_loss(x, z , model, loss_fn, temperature_forward, meta_step, encode=encode)
                     #meta_cost.append(loss)
                 #print compute_param_norm(model.conv_x_z_1.weight.data)
@@ -819,14 +1130,19 @@ def train(args,
                 #if KLD is not None:
                 #    train_kld_each_step[meta_step].append(KLD.data[0])
                     
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
                 if args.meta_steps>1:
                     #data, _, _, _, _, _, _ = forward_diffusion(data, model, loss_fn,temperature_forward,meta_step)
                     #data = data.view(-1,3, 64,64)
                     #data = Variable(data.data, requires_grad=False)
                     x =  Variable(x_tilde.data.view(-1, 3, 64, 64), requires_grad=False)
                     z = Variable(z_tilde.data, requires_grad=False)
+<<<<<<< HEAD
+                    encode = False
+=======
                     if args.encode_every_step==0:
                         encode = False
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
                     temperature_forward *= args.temperature_factor
                     
            
@@ -843,8 +1159,13 @@ def train(args,
                 return 1.
             
             #batch_idx=0
+<<<<<<< HEAD
+            if batch_idx%100==0:
+                plot_loss(model_dir, train_loss, train_x_loss, train_log_p_reverse)
+=======
             if batch_idx%500==0:
                 plot_loss(model_dir, train_loss, train_x_loss, train_log_p_reverse, train_kld, train_loss_each_step, train_x_loss_each_step, train_log_p_reverse_each_step, args.meta_steps)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
                 
                 count_sample += 1
                 temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps -1 ))
@@ -854,13 +1175,21 @@ def train(args,
                 
                 data_forward_diffusion = data
                 for num_step in range(args.num_steps * args.meta_steps):
+<<<<<<< HEAD
+                    print "Forward temperature", temperature_forward
+=======
                     #print "Forward temperature", temperature_forward
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
                     data_forward_diffusion, _, _, _, _, _, _ = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward, num_step)
                     #print data_forward_diffusion.shape
                     #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
                     data_forward_diffusion = data_forward_diffusion.view(-1,3, 64,64)#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+<<<<<<< HEAD
+                    plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
+=======
                     if num_step%2==1:
                         plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
                     
                     temperature_forward = temperature_forward * args.temperature_factor;
                 
@@ -904,8 +1233,12 @@ def train(args,
                 for i in range(args.num_steps*args.meta_steps):# + args.extra_steps):
                     z_new_to_x, z_to_x, z_new  = model.sample(z, temperature, args.num_steps*args.meta_steps -i - 1)
                     #print 'On step number, using temperature', i, temperature
+<<<<<<< HEAD
+                    reverse_time(scl, shft, z_new_to_x.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch) + '_step_' + str(i))
+=======
                     if i%2==1:
                         reverse_time(scl, shft, z_new_to_x.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch) + '_step_' + str(i))
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
                     
                     if temperature == args.temperature:
                         temperature = temperature
@@ -914,11 +1247,19 @@ def train(args,
                     z = z_new
                 
     
+<<<<<<< HEAD
+    copy_tree(temp_model_dir, model_dir)
+    copy_tree(temp_result_dir, result_dir)
+    
+    rmtree(temp_model_dir)
+    rmtree(temp_result_dir)
+=======
     #copy_tree(temp_model_dir, model_dir)
     #copy_tree(temp_result_dir, result_dir)
     
     #rmtree(temp_model_dir)
     #rmtree(temp_result_dir)
+>>>>>>> 3cecdbb5646fed5f0ebca8204c9149e627a4ad2d
     
 
 if __name__ == '__main__':
