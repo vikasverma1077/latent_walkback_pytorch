@@ -322,11 +322,12 @@ def train(args, lrate):
         
         break ### TO DO : calculate statistics on whole data
     
-    if args.dataset == 'cifar10':
+    if args.dataset == 'cifar10' or args.dataset == 'svhn':
         model = Net_cifar(args, input_shape=input_shape)
     elif args.dataset == 'svhn':
-        print ('this')
-        model = Net_svhn(args, input_shape=input_shape)
+        #print ('this')
+        #model = Net_svhn(args, input_shape=input_shape)
+        pass
     else:
         model = Net(args, input_shape=input_shape)
     if args.cuda:
