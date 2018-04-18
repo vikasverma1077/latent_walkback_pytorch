@@ -135,7 +135,7 @@ def compute_loss(x, model, loss_fn):
     
     KLD = -0.5 * torch.sum(1 + sigma - mu.pow(2) - sigma.exp())
     KLD /= args.batch_size 
-    loss = x_loss + 0.1*KLD
+    loss = x_loss + 0.001*KLD
     
     return loss, x_loss, KLD
 
@@ -225,10 +225,10 @@ def train(args, lrate):
         
         break ### TO DO : calculate statistics on whole data
     
-    if dataset == 'svhn':
-        model = VAE_svhn(args, imgSize=input_shape)
-    else:
+    if dataset == 'svhn' or dataset == 'cifar10' :
         model = VAE(args, imgSize=input_shape)
+    else:
+        model = VAE_old(args, imgSize=input_shape)
     if args.cuda:
         model.cuda()
     loss_fn = nn.BCELoss()

@@ -56,6 +56,10 @@ def parse_args():
                         help='size of transition layers')
     parser.add_argument('--transition_steps', default=5, type=int,
                         help='number of transition steps')
+    parser.add_argument('--kernel_size', default=2, type=int,
+                        help='kernel size in conv layers')
+    parser.add_argument('--stride', default=2, type=int,
+                        help='stride in conv layers')
     
     parser.add_argument('--use_decoder', type = bool, default = True,
                         help='whether should we use decoder')
@@ -128,6 +132,8 @@ def experiment_name(dataset='celebA',
                     enc_fc_size =128,
                     transition_size = 256,
                     transition_steps =3, 
+                    kernel_size = 2,
+                    stride =2,
                     job_id=None,
                     add_name=''):
     exp_name = str(dataset)
@@ -145,6 +151,8 @@ def experiment_name(dataset='celebA',
     exp_name += '_enc_fc_size_'+str(enc_fc_size)
     exp_name += '_transition_size_'+str(transition_size)
     exp_name += '_transition_steps_'+str(transition_steps)
+    exp_name += '_kernel_size_'+str(kernel_size)
+    exp_name += '_stride_'+str(stride)
     if job_id!=None:
         exp_name += '_job_id_'+str(job_id)
     if add_name!='':
@@ -194,7 +202,7 @@ def compute_loss(x, z, model, loss_fn, start_temperature, meta_step, encode= Fal
     #print x_tilde.shape
     #print x.shape
     #return 1
-    x_loss = loss_fn(x_tilde,x.view(-1, x.shape[0]*x.shape[1]*x.shape[2]))## sum over axis=1
+    x_loss = loss_fn(x_tilde,x.view(-1, x.shape[1]*x.shape[2]*x.shape[3]))## sum over axis=1
     #print x_loss
     #return 1
     loss =  -log_p_reverse*args.alpha2 + x_loss*args.alpha1 
@@ -259,6 +267,8 @@ def train(args, lrate):
                     enc_fc_size = args.enc_fc_size,
                     transition_size = args.transition_size,
                     transition_steps = args.transition_steps,
+                    kernel_size = args.kernel_size,
+                    stride = args.stride,
                     job_id=args.job_id,
                     add_name=args.add_name)
     

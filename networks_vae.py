@@ -3,19 +3,19 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn.init import *
 
-class VAE(nn.Module):
+class VAE_old(nn.Module):
     def __init__(self, args, imgSize=(3,64,64)):
-        super(VAE, self).__init__()
-        
+        super(VAE_old, self).__init__()
+        self.init_ch = args.init_ch
         self.args = args
         self.imgSize = imgSize
         ## encoder###
-        self.conv1 = nn.Conv2d(imgSize[0], 32, 3, stride=1)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 32, 3, stride=1)
-        self.bn2 = nn.BatchNorm2d(32)
-        self.conv3= nn.Conv2d(32, 64, 3, stride=1)
-        self.bn3 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(imgSize[0], self.init_ch, 3, stride=1)
+        self.bn1 = nn.BatchNorm2d(self.init_ch)
+        self.conv2 = nn.Conv2d(self.init_ch, self.init_ch, 3, stride=1)
+        self.bn2 = nn.BatchNorm2d(self.init_ch)
+        self.conv3= nn.Conv2d(self.init_ch, self.init_ch*2, 3, stride=1)
+        self.bn3 = nn.BatchNorm2d(self.init_ch*2)
         #self.conv4 = nn.Conv2d(64, 64, 4, stride=2)
         #self.bn4 = nn.BatchNorm2d(64)
         self.flat_shape = self.get_flat_shape(imgSize)
@@ -32,15 +32,15 @@ class VAE(nn.Module):
         #self.fc4 = nn.Linear(128, (imgSize[1]/8)*(imgSize[1]/8)*64)
         #self.bn7 = nn.BatchNorm1d((imgSize[1]/8)*(imgSize[1]/8)*64)
         
-        self.fc4 = nn.Linear(128, 26*26*64)
-        self.bn7 = nn.BatchNorm1d(26*26*64)
+        self.fc4 = nn.Linear(128, 26*26*self.init_ch*2)
+        self.bn7 = nn.BatchNorm1d(26*26*self.init_ch*2)
         
         
-        self.conv_z_1 = nn.ConvTranspose2d(64, 32, kernel_size=3, stride= 1)#, padding=1)
+        self.conv_z_1 = nn.ConvTranspose2d(self.init_ch*2, self.init_ch, kernel_size=3, stride= 1)#, padding=1)
         self.bn8 = nn.BatchNorm2d(32)
-        self.conv_z_2 = nn.ConvTranspose2d(32, 32, kernel_size=3, stride= 1)#, padding=1)
+        self.conv_z_2 = nn.ConvTranspose2d(self.init_ch, self.init_ch, kernel_size=3, stride= 1)#, padding=1)
         self.bn9 = nn.BatchNorm2d(32)
-        self.conv_z_3 = nn.ConvTranspose2d(32, imgSize[0], kernel_size=3, stride= 1)#, padding=1)
+        self.conv_z_3 = nn.ConvTranspose2d(self.init_ch, imgSize[0], kernel_size=3, stride= 1)#, padding=1)
         self.bn10 = nn.BatchNorm2d(imgSize[0])
         
         self.relu = nn.ReLU()
@@ -86,7 +86,7 @@ class VAE(nn.Module):
         h = self.relu(self.bn7(self.fc4(h)))
         #print h.shape
         #h = h.view(-1, 64, (self.imgSize[1]/8),(self.imgSize[1]/8))
-        h = h.view(-1, 64, 26, 26)
+        h = h.view(-1, self.init_ch*2, 26, 26)
         #print h.shape
         h = self.relu(self.bn8(self.conv_z_1(h)))
         #print h.shape
@@ -105,10 +105,11 @@ class VAE(nn.Module):
 
 
 
-class VAE_svhn(nn.Module):
+class VAE(nn.Module):
     def __init__(self, args, imgSize=(3,64,64)):
-        super(VAE_svhn, self).__init__()
-        self.init_ch = 128
+        super(VAE, self).__init__()
+        self.init_ch = args.init_ch
+        print ('init_ch=', self.init_ch)
         self.kernel_size =2
         self.stride = 2
         self.args = args

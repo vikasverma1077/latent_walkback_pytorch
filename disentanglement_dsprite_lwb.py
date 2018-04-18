@@ -25,7 +25,7 @@ from torch.nn.utils.clip_grad import clip_grad_norm
 import tensordataset
 
 
-from viz import plot_images
+from viz import *
 import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument('--use_encoder', type = bool, default = True,
                         help='whether should we use encoder')
    
-    parser.add_argument('--encode_every_step', type=int, default=0)
+    parser.add_argument('--encode_every_step', type=int, default=1)
     parser.add_argument('--alpha1', type=float, default=1.0,help='coefficient for reconstruction loss')
     parser.add_argument('--alpha2', type=float, default= 1.0,help='coefficient for log_p_reverse')
     parser.add_argument('--alpha3', type=float, default=1.0,help='coefficient for KLD')
@@ -301,7 +301,7 @@ def get_disentanglement_score(epoch, model_dir, filep, step):
         std_each_z = mu.data.std(dim=0)
         return std_each_z
     
-    std_each_z = get_std_over_large_subset(model,step, subset_size=10000)
+    std_each_z = get_std_over_large_subset(model,step, subset_size=1000)
     #print (std_each_z)
         
     def get_x(model, fixed_latent_factor_index, batch_size, std_each_z, step):
@@ -587,7 +587,8 @@ def train(args,lrate):
                         encode = False
                     temperature_forward *= args.temperature_factor
                     
-           
+            if batch_idx%1000==0:
+                plot_loss(model_dir, train_loss, train_x_loss, train_log_p_reverse, train_kld, train_loss_each_step, train_x_loss_each_step, train_log_p_reverse_each_step, args.meta_steps)
             
             if np.isnan(loss.data.cpu()[0]) or np.isinf(loss.data.cpu()[0]):
                 print loss.data
@@ -598,7 +599,7 @@ def train(args,lrate):
         torch.save(model, model_dir+'/model.pt')
         #for i in range(args.num_steps*args.meta_steps):
         #    get_disentanglement_score(model_dir, step=i+1)
-        get_disentanglement_score(epoch, model_dir, filep, step=10) ## step index starts from 1
+        get_disentanglement_score(epoch, model_dir, filep, step=1) ## step index starts from 1
     
     
 if __name__ == '__main__':
