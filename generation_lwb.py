@@ -372,6 +372,10 @@ def train(args, lrate):
             x = data
             z = None
             encode = True
+            #optimizer_encoder.zero_grad()
+            #optimizer_transition.zero_grad()
+            #optimizer_decoder.zero_grad()
+                
             for meta_step in range(0, args.meta_steps):
                 #print ('meta_step', meta_step)
                 #print encode
@@ -384,6 +388,7 @@ def train(args, lrate):
                 loss.backward()
                 #total_norm = clip_grad_norm(model.parameters(), args.grad_max_norm)
                 #print ('step', meta_step, total_norm)
+                #if meta_step==args.meta_steps-1:
                 if encode==True:
                     optimizer_encoder.step()
                 optimizer_transition.step()

@@ -304,7 +304,7 @@ class Net(nn.Module):
 class Net_cifar(nn.Module):
     def __init__(self, args, input_shape=(3,32,32)):
         super(Net_cifar, self).__init__()
-        print 'cifar'
+        print 'new net'
         self.args = args
         self.init_ch = args.init_ch
         self.input_shape = input_shape
@@ -392,7 +392,7 @@ class Net_cifar(nn.Module):
             self.transition_params.extend(self.fc_trans_3.parameters())
             self.bn9_list=nn.ModuleList()
             for i in xrange(args.meta_steps):
-                self.bn9_list.append(nn.BatchNorm1d(self.self.flat_shape))
+                self.bn9_list.append(nn.BatchNorm1d(self.flat_shape))
                 self.transition_params.extend(self.bn9_list[i].parameters())
         else:
             
@@ -473,11 +473,18 @@ class Net_cifar(nn.Module):
     
     def encode(self, x, step):
         
-        h = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
+        #h = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
+        h = self.act(self.conv_x_z_1(x))
+        
         #print h.shape
-        h = self.act(self.bn2_list[step](self.conv_x_z_2(h)))
+        #h = self.act(self.bn2_list[step](self.conv_x_z_2(h)))
+        h = self.act(self.conv_x_z_2(h))
+        
         #print h.shape
-        h = self.act(self.bn3_list[step](self.conv_x_z_3(h)))
+        #h = self.act(self.bn3_list[step](self.conv_x_z_3(h)))
+        h = self.act(self.conv_x_z_3(h))
+        
+        
         #print h.shape
         h = h.view(-1, self.flat_shape)
         #h = self.act(self.bn4_list[step](self.fc_layer_1(h)))
@@ -509,9 +516,9 @@ class Net_cifar(nn.Module):
         #print h.shape
         #h = torch.clamp(h, min=0, max=5)
         #print h3
-        mu = self.bn5_list[step](self.fc_z_mu(h))  #### use h3 for three layers in the transition operator
+        mu =  self.fc_z_mu(h)#self.bn5_list[step](self.fc_z_mu(h))  #### use h3 for three layers in the transition operator
         #print mu
-        sigma = self.bn6_list[step](self.fc_z_sigma(h))
+        sigma = self.fc_z_sigma(h)#self.bn6_list[step](self.fc_z_sigma(h))
         #print sigma
         #print ('mu', np.isnan(mu.data.cpu().numpy()).any())
         #print ('sigma', np.isnan(sigma.data.cpu().numpy()).any())
@@ -554,15 +561,24 @@ class Net_cifar(nn.Module):
      
     def decode (self, z_new, step):
         #print z_new
-        d = self.act(self.bn12_list[step](self.fc_z_x_1(z_new)))
+        #d = self.act(self.bn12_list[step](self.fc_z_x_1(z_new)))
+        d = self.act(self.fc_z_x_1(z_new))
+        
         #print (d.shape)
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
+        
         #print (d.shape)
-        d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        #d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        d = self.act(self.conv_z_x_1(d))
+        
         #print (d.shape)
-        d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
+        #d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
+        d = self.act(self.conv_z_x_2(d))
+        
         #print (d.shape)
-        d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        #d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        d = self.sigmoid(self.conv_z_x_3(d))
+        
         #print (d.shape)
         #d = self.sigmoid(self.bn16_list[step](self.conv_z_x_4(d)))
         #print (d.shape)
@@ -574,11 +590,22 @@ class Net_cifar(nn.Module):
         return p
     
     def sample(self, z, temperature,step):
-        d = self.act(self.bn12_list[step](self.fc_z_x_1(z)))
+        
+        #d = self.act(self.bn12_list[step](self.fc_z_x_1(z)))
+        d = self.act(self.fc_z_x_1(z))
+        
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
-        d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
-        d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
-        d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        
+        #d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        d = self.act(self.conv_z_x_1(d))
+        
+        #d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
+        d = self.act(self.conv_z_x_2(d))
+        
+        #d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        d = self.sigmoid(self.conv_z_x_3(d))
+        
+        
         shape = d.data.shape
         x_new =  d.view(-1, shape[1]*shape[2]*shape[3])
     
