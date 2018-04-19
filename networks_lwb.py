@@ -10,6 +10,7 @@ from torch.autograd import Variable
  
 from lib.distributions import log_normal2
 
+"""
 
 class Net(nn.Module):
     def __init__(self, args, input_shape=(3,32,32)):
@@ -297,7 +298,7 @@ class Net(nn.Module):
         
         return x_tilde, x_new, z_new 
     
-    
+"""    
     
     
     
@@ -616,19 +617,20 @@ class Net_cifar(nn.Module):
     
     
     
-    
 class Net_svhn(nn.Module):
+    ## code replicating anirudh's theano code
     def __init__(self, args, input_shape=(3,32,32)):
         super(Net_svhn, self).__init__()
-        
+        print ('damn')
         self.args = args
         self.init_ch = args.init_ch
         self.input_shape = input_shape
         self.enc_fc_size = args.enc_fc_size
         self.transition_size = args.transition_size
-        kernel_size = 2
-        padsize = 2
-        
+        self.stride = args.stride
+        self.kernel_size = args.kernel_size
+        padsize = 1
+        print ('pad')
         
         if self.args.activation == 'relu':
             self.act = nn.ReLU()
@@ -639,28 +641,29 @@ class Net_svhn(nn.Module):
         ### Encoder ######
         self.encoder_params= []   
          
-        self.conv_x_z_1 = nn.Conv2d(3, self.init_ch, kernel_size=kernel_size, stride=2, padding=padsize)
+        self.conv_x_z_1 = nn.Conv2d(input_shape[0], self.init_ch, kernel_size=self.kernel_size, stride=self.stride)#, padding= )
         self.encoder_params.extend(self.conv_x_z_1.parameters())
         self.bn1_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
             self.bn1_list.append(nn.BatchNorm2d(self.init_ch))
             self.encoder_params.extend(self.bn1_list[i].parameters())
         
-        self.conv_x_z_2 = nn.Conv2d(self.init_ch, self.init_ch*2, kernel_size=kernel_size, stride=2, padding=padsize)
+        self.conv_x_z_2 = nn.Conv2d(self.init_ch, self.init_ch*2, kernel_size=self.kernel_size, stride=self.stride)#,  padding= padsize)
         self.encoder_params.extend(self.conv_x_z_2.parameters())
         self.bn2_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
             self.bn2_list.append(nn.BatchNorm2d(self.init_ch*2))
             self.encoder_params.extend(self.bn2_list[i].parameters())
         
-        self.conv_x_z_3 = nn.Conv2d(self.init_ch*2, self.init_ch*4, kernel_size=kernel_size, stride=2, padding=padsize)
+        self.conv_x_z_3 = nn.Conv2d(self.init_ch*2, self.init_ch*4, kernel_size=self.kernel_size, stride=self.stride)#, padding= padsize)
         self.encoder_params.extend(self.conv_x_z_3.parameters())
         self.bn3_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
             self.bn3_list.append(nn.BatchNorm2d(self.init_ch*4))
             self.encoder_params.extend(self.bn3_list[i].parameters())
-            
-        self.flat_shape = self.get_flat_shape_1(input_shape) 
+           
+        self.flat_shape, self.last_encoder_shape = self.get_flat_shape(input_shape)
+        
         self.fc_layer_1 = nn.Linear(self.flat_shape, self.enc_fc_size)
         self.encoder_params.extend(self.fc_layer_1.parameters())
         self.bn4_list=nn.ModuleList()
@@ -737,15 +740,15 @@ class Net_svhn(nn.Module):
         ### decoder #####
         self.decoder_params = []
         
-        self.fc_z_x_1 = nn.Linear(args.nl, (self.init_ch*4)*(input_shape[1]/8)*(input_shape[2]/8))
+        self.fc_z_x_1 = nn.Linear(args.nl, self.flat_shape)
         self.decoder_params.extend(self.fc_z_x_1.parameters())
         self.bn12_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
-            self.bn12_list.append(nn.BatchNorm1d((self.init_ch*4)*(input_shape[1]/8)*(input_shape[2]/8)))
+            self.bn12_list.append(nn.BatchNorm1d(self.flat_shape))
             self.decoder_params.extend(self.bn12_list[i].parameters())
             
             
-        self.conv_z_x_2 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*2, kernel_size=4, stride= 2, padding=1)
+        self.conv_z_x_2 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*2, kernel_size=self.kernel_size, stride= self.stride)
         self.decoder_params.extend(self.conv_z_x_2.parameters())
         self.bn13_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
@@ -753,7 +756,7 @@ class Net_svhn(nn.Module):
             self.decoder_params.extend(self.bn13_list[i].parameters())
             
             
-        self.conv_z_x_3 = nn.ConvTranspose2d(self.init_ch*2, self.init_ch, kernel_size=4, stride= 2, padding=1)
+        self.conv_z_x_3 = nn.ConvTranspose2d(self.init_ch*2, self.init_ch, kernel_size= self.kernel_size, stride= self.stride)
         self.decoder_params.extend(self.conv_z_x_3.parameters())
         self.bn14_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
@@ -761,45 +764,38 @@ class Net_svhn(nn.Module):
             self.decoder_params.extend(self.bn14_list[i].parameters())
             
             
-        self.conv_z_x_4 = nn.ConvTranspose2d(self.init_ch, 3, kernel_size=4, stride= 2, padding=1)
+        self.conv_z_x_4 = nn.ConvTranspose2d(self.init_ch, self.input_shape[0], kernel_size=self.kernel_size, stride= self.stride)
         self.decoder_params.extend(self.conv_z_x_4.parameters())
         self.bn15_list=nn.ModuleList()
         for i in xrange(args.meta_steps):
-            self.bn15_list.append(nn.BatchNorm2d(3))
+            self.bn15_list.append(nn.BatchNorm2d(self.input_shape[0]))
             self.decoder_params.extend(self.bn15_list[i].parameters())
             
            
             
-    def get_flat_shape_1(self, input_shape):
+    def get_flat_shape(self, input_shape):
         dummy = Variable(torch.zeros(1, *input_shape))
         dummy = self.conv_x_z_1(dummy)
         dummy = self.conv_x_z_2(dummy)
         dummy = self.conv_x_z_3(dummy)
         
-        return dummy.data.view(1, -1).size(1)
+        return dummy.data.view(1, -1).size(1), dummy.data.shape
     
     
-    def get_flat_shape_2(self, shape):
-        dummy = Variable(torch.zeros(1, *shape))
-        dummy = self.conv_z_x_2(dummy)
-        dummy = self.conv_z_x_3(dummy)
-        dummy = self.conv_z_x_4(dummy)
-        
-        return dummy.data.shape
-    
+       
     def encode(self, x, step):
+        c = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
+        #print (c.shape)
+        c = self.act(self.bn2_list[step](self.conv_x_z_2(c)))
+        #print (c.shape)
+        c = self.act(self.bn3_list[step](self.conv_x_z_3(c)))
+        #print (c.shape)
+        c = c.view(-1, self.flat_shape)
+        h = self.act(self.bn4_list[step](self.fc_layer_1(c)))
+        #print (h.shape)
         
-        c1 = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
-        #print c1
-        c2 = self.act(self.bn2_list[step](self.conv_x_z_2(c1)))
-        #print c2
-        c3 = self.act(self.bn3_list[step](self.conv_x_z_3(c2)))
-        #print c3
-        c3 = c3.view(-1, self.flat_shape)
-        h1 = self.act(self.bn4_list[step](self.fc_layer_1(c3)))
-        #print h1
-        mu = self.bn5_list[step](self.fc_z_mu(h1))
-        sigma = self.bn6_list[step](self.fc_z_sigma(h1))
+        mu = self.fc_z_mu(h)#mu = self.bn5_list[step](self.fc_z_mu(h1))
+        sigma = self.fc_z_sigma(h)#sigma = self.bn6_list[step](self.fc_z_sigma(h1))
         return mu, sigma
 
         
@@ -814,20 +810,22 @@ class Net_svhn(nn.Module):
         #print ('z', np.isnan(z.data.cpu().numpy()).any())
         #    print z.requires_grad
         h = self.act(self.bn7_list[step](self.fc_trans_1(z)))
-        #print h1
+        #print (h.shape)
         h = self.act(self.bn8_list[step](self.fc_trans_2(h)))
-        #print h2
+        #print (h.shape)
         h = self.act(self.bn9_list[step](self.fc_trans_3(h)))
+        #print (h.shape)
+        
         if self.args.transition_steps>3:
             h = self.act(self.bn10_list[step](self.fc_trans_4(h)))
             h = self.act(self.bn11_list[step](self.fc_trans_5(h)))
             
         #print h3
-        h = torch.clamp(h, min=0, max=5)
-        #print h3
-        mu = self.bn5_list[step](self.fc_z_mu(h))  #### use h3 for three layers in the transition operator
+        #h = torch.clamp(h, min=0, max=5)
+        #print (h.shape)
+        mu = self.fc_z_mu(h)#mu = self.bn5_list[step](self.fc_z_mu(h))  #### use h3 for three layers in the transition operator
         #print mu
-        sigma = self.bn6_list[step](self.fc_z_sigma(h))
+        sigma = self.fc_z_sigma(h)#sigma = self.bn6_list[step](self.fc_z_sigma(h))
         #print sigma
         #print ('mu', np.isnan(mu.data.cpu().numpy()).any())
         #print ('sigma', np.isnan(sigma.data.cpu().numpy()).any())
@@ -871,14 +869,16 @@ class Net_svhn(nn.Module):
     def decode (self, z_new, step):
         #print z_new
         d = self.act(self.bn12_list[step](self.fc_z_x_1(z_new)))
-        #print d0
-        d = d.view(-1, (self.init_ch*4),(self.input_shape[1]/8), (self.input_shape[2]/8))
+        #print (d.shape)
+        d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
+        #print (d.shape)
         d = self.act(self.bn13_list[step](self.conv_z_x_2(d)))
-        #print d1.data.shape
+        #print (d.shape)
         d = self.act(self.bn14_list[step](self.conv_z_x_3(d)))
         #print self.conv_z_x_3(d1)
-        #print d2.data.shape
+        #print (d.shape)
         d = self.sigmoid(self.bn15_list[step](self.conv_z_x_4(d)))
+        #print (d.shape)
         #print self.conv_z_x_4(d2)
         #print d3.data.shape
         shape = d.data.shape
@@ -891,7 +891,7 @@ class Net_svhn(nn.Module):
     
     def sample(self, z, temperature,step):
         d = self.act(self.bn12_list[step](self.fc_z_x_1(z)))
-        d = d.view(-1, (self.init_ch*4), (self.input_shape[1]/8), (self.input_shape[2]/8))
+        d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
         d = self.act(self.bn13_list[step](self.conv_z_x_2(d)))
         d = self.act(self.bn14_list[step](self.conv_z_x_3(d)))
         d = self.sigmoid(self.bn15_list[step](self.conv_z_x_4(d)))

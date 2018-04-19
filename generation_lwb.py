@@ -26,7 +26,7 @@ import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
 
-from networks_lwb import *
+from networks_lwb import Net_svhn
 from load import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
@@ -43,7 +43,8 @@ def parse_args():
                         help='num of epochs')
     parser.add_argument('--batch_size', default=100, type=int,
                         help='Batch size')
-    parser.add_argument('--data_aug', type=int, default=0)
+    parser.add_argument('--cumul_update', type=int, default=0,
+                        help='update gradient afer all the steps(value =1) or at each step (value=0)')
     
     
     parser.add_argument('--init_ch', default=32, type=int,
@@ -119,6 +120,7 @@ def parse_args():
 ##############################
 def experiment_name(dataset='celebA',
                     act = 'relu',
+                    cumul_update = 1,
                     meta_steps=10,
                     sigma = 0.0001,
                     temperature_factor = 1.1,
@@ -138,19 +140,20 @@ def experiment_name(dataset='celebA',
                     add_name=''):
     exp_name = str(dataset)
     exp_name += '_act_'+str(act)
+    exp_name += '_cumul_update_'+str(cumul_update)
     exp_name += '_meta_steps_'+str(meta_steps)
     exp_name += '_sigma_'+str(sigma)
-    exp_name += '_temperature_factor_'+str(temperature_factor)
-    exp_name += '_alpha1_'+str(alpha1)
-    exp_name += '_alpha2_'+str(alpha2)
-    exp_name += '_alpha3_'+str(alpha3)
+    exp_name += '_temp_factor_'+str(temperature_factor)
+    exp_name += '_a1_'+str(alpha1)
+    exp_name += '_a2_'+str(alpha2)
+    exp_name += '_a3_'+str(alpha3)
     exp_name += '_grad_norm_max_'+str(grad_norm_max)
     exp_name += '_epochs_'+str(epochs)
     exp_name += '_z_size_'+str(z_size)
     exp_name += '_init_ch_'+str(init_ch)
     exp_name += '_enc_fc_size_'+str(enc_fc_size)
-    exp_name += '_transition_size_'+str(transition_size)
-    exp_name += '_transition_steps_'+str(transition_steps)
+    exp_name += '_trans_size_'+str(transition_size)
+    exp_name += '_trans_steps_'+str(transition_steps)
     exp_name += '_kernel_size_'+str(kernel_size)
     exp_name += '_stride_'+str(stride)
     if job_id!=None:
@@ -187,7 +190,7 @@ def reverse_time(scl, shft, sample_drawn, name, shape):
 
 def compute_loss(x, z, model, loss_fn, start_temperature, meta_step, encode= False):
     
-    
+    #print (x.shape)
     temperature = start_temperature
     if encode==True:
         #print 'this'
@@ -254,6 +257,7 @@ def train(args, lrate):
     
     exp_name=experiment_name(dataset = args.dataset,
                     act = args.activation,
+                    cumul_update = args.cumul_update,
                     meta_steps = args.meta_steps,
                     sigma = args.sigma,
                     temperature_factor = args.temperature_factor,
@@ -322,12 +326,12 @@ def train(args, lrate):
         
         break ### TO DO : calculate statistics on whole data
     
-    if args.dataset == 'cifar10' or args.dataset == 'svhn':
+    if args.dataset == 'cifar10':
         model = Net_cifar(args, input_shape=input_shape)
     elif args.dataset == 'svhn':
-        #print ('this')
-        #model = Net_svhn(args, input_shape=input_shape)
-        pass
+        print ('svhn net')
+        model = Net_svhn(args, input_shape=input_shape)
+        
     else:
         model = Net(args, input_shape=input_shape)
     if args.cuda:
@@ -343,7 +347,7 @@ def train(args, lrate):
         optimizer_decoder = optim.Adam(model.decoder_params, lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
    
    
-    
+    print ('net loaded')
     #### for saving metrics for all steps ###
     train_loss = []
     train_x_loss = []
@@ -372,28 +376,36 @@ def train(args, lrate):
             x = data
             z = None
             encode = True
-            #optimizer_encoder.zero_grad()
-            #optimizer_transition.zero_grad()
-            #optimizer_decoder.zero_grad()
-                
+            if args.cumul_update == 1:
+                optimizer_encoder.zero_grad()
+                optimizer_transition.zero_grad()
+                optimizer_decoder.zero_grad()
+                    
             for meta_step in range(0, args.meta_steps):
                 #print ('meta_step', meta_step)
                 #print encode
                 loss, x_loss, log_p_reverse, KLD, z, z_tilde, x_tilde = compute_loss(x, z , model, loss_fn, temperature_forward, meta_step, encode=encode)
                     #meta_cost.append(loss)
                 #print compute_param_norm(model.conv_x_z_1.weight.data)
-                optimizer_encoder.zero_grad()
-                optimizer_transition.zero_grad()
-                optimizer_decoder.zero_grad()
-                loss.backward()
-                #total_norm = clip_grad_norm(model.parameters(), args.grad_max_norm)
-                #print ('step', meta_step, total_norm)
-                #if meta_step==args.meta_steps-1:
-                if encode==True:
-                    optimizer_encoder.step()
-                optimizer_transition.step()
-                optimizer_decoder.step()
-                
+                if args.cumul_update == 0:
+                    optimizer_encoder.zero_grad()
+                    optimizer_transition.zero_grad()
+                    optimizer_decoder.zero_grad()
+                    loss.backward()
+                    if encode==True:
+                        optimizer_encoder.step()
+                    optimizer_transition.step()
+                    optimizer_decoder.step()
+                else:
+                    loss.backward()
+                    #total_norm = clip_grad_norm(model.parameters(), args.grad_max_norm)
+                    #print ('step', meta_step, total_norm)
+                    if meta_step==args.meta_steps-1:
+                        if encode==True:
+                            optimizer_encoder.step()
+                        optimizer_transition.step()
+                        optimizer_decoder.step()
+                        
                 #print ('step', meta_step, clip_grad_norm(model.parameters(), 1000000))
                 ### store metrics#######
                 train_loss.append(loss.data[0])
