@@ -26,7 +26,7 @@ import sys
 #from lib.util import  norm_weight, _p, itemlist,  load_params, create_log_dir, unzip,  save_params
 from lib.distributions import log_normal2
 
-from networks_lwb import Net_svhn
+from networks_lwb import *
 from load import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
@@ -43,7 +43,9 @@ def parse_args():
                         help='num of epochs')
     parser.add_argument('--batch_size', default=100, type=int,
                         help='Batch size')
-    parser.add_argument('--cumul_update', type=int, default=0,
+    parser.add_argument('--data_aug', type=int, default=0,
+                        help='apply data aug or not')
+    parser.add_argument('--cumul_update', type=int, default=1,
                         help='update gradient afer all the steps(value =1) or at each step (value=0)')
     
     
@@ -327,12 +329,13 @@ def train(args, lrate):
         break ### TO DO : calculate statistics on whole data
     
     if args.dataset == 'cifar10':
+        print ('cifar net')
         model = Net_cifar(args, input_shape=input_shape)
     elif args.dataset == 'svhn':
         print ('svhn net')
         model = Net_svhn(args, input_shape=input_shape)
-        
     else:
+        print ('celebA net')
         model = Net(args, input_shape=input_shape)
     if args.cuda:
         model.cuda()

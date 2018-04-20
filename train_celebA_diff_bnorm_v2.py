@@ -41,7 +41,7 @@ def parse_args():
                         help='activation function to use in the network except the last layer of decoder')
     parser.add_argument('--encode_every_step', type=int, default=0)
     parser.add_argument('--alpha1', type=float, default=1.0,help='coefficient for reconstruction loss')
-    parser.add_argument('--alpha2', type=float, default=0.01,help='coefficient for log_p_reverse')
+    parser.add_argument('--alpha2', type=float, default=1.0,help='coefficient for log_p_reverse')
     parser.add_argument('--alpha3', type=float, default=1.0,help='coefficient for KLD')
     
     

@@ -10,8 +10,6 @@ from torch.autograd import Variable
  
 from lib.distributions import log_normal2
 
-"""
-
 class Net(nn.Module):
     def __init__(self, args, input_shape=(3,32,32)):
         super(Net, self).__init__()
@@ -298,14 +296,13 @@ class Net(nn.Module):
         
         return x_tilde, x_new, z_new 
     
-"""    
-    
     
     
 class Net_cifar(nn.Module):
+    ## code based on the online VAE code
     def __init__(self, args, input_shape=(3,32,32)):
         super(Net_cifar, self).__init__()
-        print 'new net'
+        #print 'new net'
         self.args = args
         self.init_ch = args.init_ch
         self.input_shape = input_shape
@@ -474,16 +471,16 @@ class Net_cifar(nn.Module):
     
     def encode(self, x, step):
         
-        #h = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
-        h = self.act(self.conv_x_z_1(x))
+        h = self.act(self.bn1_list[step](self.conv_x_z_1(x)))
+        #h = self.act(self.conv_x_z_1(x))
         
         #print h.shape
-        #h = self.act(self.bn2_list[step](self.conv_x_z_2(h)))
-        h = self.act(self.conv_x_z_2(h))
+        h = self.act(self.bn2_list[step](self.conv_x_z_2(h)))
+        #h = self.act(self.conv_x_z_2(h))
         
         #print h.shape
-        #h = self.act(self.bn3_list[step](self.conv_x_z_3(h)))
-        h = self.act(self.conv_x_z_3(h))
+        h = self.act(self.bn3_list[step](self.conv_x_z_3(h)))
+        #h = self.act(self.conv_x_z_3(h))
         
         
         #print h.shape
@@ -562,23 +559,23 @@ class Net_cifar(nn.Module):
      
     def decode (self, z_new, step):
         #print z_new
-        #d = self.act(self.bn12_list[step](self.fc_z_x_1(z_new)))
-        d = self.act(self.fc_z_x_1(z_new))
+        d = self.act(self.bn12_list[step](self.fc_z_x_1(z_new)))
+        #d = self.act(self.fc_z_x_1(z_new))
         
         #print (d.shape)
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
         
         #print (d.shape)
-        #d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
-        d = self.act(self.conv_z_x_1(d))
+        d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        #d = self.act(self.conv_z_x_1(d))
         
         #print (d.shape)
-        #d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
-        d = self.act(self.conv_z_x_2(d))
+        d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
+        #d = self.act(self.conv_z_x_2(d))
         
         #print (d.shape)
-        #d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
-        d = self.sigmoid(self.conv_z_x_3(d))
+        d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        #d = self.sigmoid(self.conv_z_x_3(d))
         
         #print (d.shape)
         #d = self.sigmoid(self.bn16_list[step](self.conv_z_x_4(d)))
@@ -592,19 +589,19 @@ class Net_cifar(nn.Module):
     
     def sample(self, z, temperature,step):
         
-        #d = self.act(self.bn12_list[step](self.fc_z_x_1(z)))
-        d = self.act(self.fc_z_x_1(z))
+        d = self.act(self.bn12_list[step](self.fc_z_x_1(z)))
+        #d = self.act(self.fc_z_x_1(z))
         
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
         
-        #d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
-        d = self.act(self.conv_z_x_1(d))
+        d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        #d = self.act(self.conv_z_x_1(d))
         
-        #d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
-        d = self.act(self.conv_z_x_2(d))
+        d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
+        #d = self.act(self.conv_z_x_2(d))
         
-        #d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
-        d = self.sigmoid(self.conv_z_x_3(d))
+        d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        #d = self.sigmoid(self.conv_z_x_3(d))
         
         
         shape = d.data.shape
