@@ -1,0 +1,1 @@
+python3.6 generation_lwb.py --dataset svhn  --activation relu --init_ch 64 --enc_fc_size 100  --transition_size 1024 --nl 1024 --transition_steps 3 --noise gaussian  --optimizer adam --batch_size 100 --num_steps 1 --meta_steps 2 --temperature 1 --temperature_factor 1.4 --lr 0.0001 --sigma 1 --encode_every_step 0 --epochs 100 --alpha3 0  --encoder_one_update 1
