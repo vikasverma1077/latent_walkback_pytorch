@@ -84,7 +84,7 @@ def show_receptive_fields(theta, P=None, n_colors=None, max_display=100, grid_wa
     #print vmin
     vmax = np.max(theta)
     #print vmax
-    
+
     for jj in range(nf):
         plt.subplot(grid_wa, grid_wb, jj+1)
         ptch = np.zeros((n_colors*img_w**2,))
@@ -96,7 +96,7 @@ def show_receptive_fields(theta, P=None, n_colors=None, max_display=100, grid_wa
             ptch = ptch.reshape((img_w, img_w))
         ptch -= vmin
         ptch /= vmax-vmin
-       
+
         plt.imshow(ptch, interpolation='nearest', cmap=cm.Greys_r)
         plt.axis('off')
 
@@ -110,8 +110,8 @@ def plot_parameter(theta_in, base_fname_part1, base_fname_part2="", title = '', 
     """
 
     theta = np.array(theta_in.copy()) # in case it was a scalar
-    print "%s min %g median %g mean %g max %g shape"%(
-        title, np.min(theta), np.median(theta), np.mean(theta), np.max(theta)), theta.shape
+    #print "%s min %g median %g mean %g max %g shape"%(
+    #    title, np.min(theta), np.median(theta), np.mean(theta), np.max(theta)), theta.shape
     theta = np.squeeze(theta)
     if len(theta.shape) == 0:
         # it's a scalar -- make it a 1d array
@@ -212,7 +212,7 @@ def plot_images(X, fname):
 
 def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld,
              train_loss_each_step, train_x_loss_each_step, train_log_p_reverse_each_step, meta_steps):
-    
+
     ### plot metrics from all the steps in one plot###
     plt.plot(np.asarray(train_loss), label='train_loss')
     plt.xlabel('evaluation step')
@@ -221,7 +221,7 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     plt.legend(loc='upper right')
     plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
     plt.clf()
-    
+
     plt.plot(np.asarray(train_x_loss), label='train_x_loss')
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
@@ -229,7 +229,7 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     plt.legend(loc='upper right')
     plt.savefig(os.path.join(exp_dir, 'train_x_loss.png' ))
     plt.clf()
-    
+
     plt.plot(np.asarray(train_log_p_reverse), label='train_log_p_reverse')
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
@@ -245,13 +245,13 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
     plt.legend(loc='upper right')
     plt.savefig(os.path.join(exp_dir, 'train_kld.png' ))
     plt.clf()
-    
-    
+
+
     ### plot metrics from different steps in different plots##
     for i in range(meta_steps):
-    
+
         plt.plot(np.asarray(train_loss_each_step[i]), label='train_loss')
-            
+
         #plt.ylim(0,2000)
         plt.xlabel('evaluation step')
         plt.ylabel('metrics')
@@ -259,11 +259,11 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
         plt.legend(loc='upper right')
         plt.savefig(os.path.join(exp_dir, 'train_loss'+str(i)+'.png' ))
         plt.clf()
-    
+
     for i in range(meta_steps):
-        
+
         plt.plot(np.asarray(train_x_loss_each_step[i]), label='train_x_loss')
-            
+
         #plt.ylim(0,2000)
         plt.xlabel('evaluation step')
         plt.ylabel('metrics')
@@ -271,10 +271,10 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
         plt.legend(loc='upper right')
         plt.savefig(os.path.join(exp_dir, 'train_x_loss'+str(i)+'.png' ))
         plt.clf()
-        
+
     for i in range(meta_steps):
         plt.plot(np.asarray(train_log_p_reverse_each_step[i]), label='train_log_p_reverse')
-            
+
         #plt.ylim(0,2000)
         plt.xlabel('evaluation step')
         plt.ylabel('metrics')
@@ -285,7 +285,7 @@ def plot_loss(exp_dir, train_loss,  train_x_loss, train_log_p_reverse, train_kld
 
 
 def plot_loss_vae(exp_dir, train_loss,  train_x_loss, train_kld):
-    
+
     ### plot metrics from all the steps in one plot###
     plt.plot(np.asarray(train_loss), label='train_loss')
     plt.xlabel('evaluation step')
@@ -294,7 +294,7 @@ def plot_loss_vae(exp_dir, train_loss,  train_x_loss, train_kld):
     plt.legend(loc='upper right')
     plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
     plt.clf()
-    
+
     plt.plot(np.asarray(train_x_loss), label='train_x_loss')
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
@@ -302,7 +302,7 @@ def plot_loss_vae(exp_dir, train_loss,  train_x_loss, train_kld):
     plt.legend(loc='upper right')
     plt.savefig(os.path.join(exp_dir, 'train_x_loss.png' ))
     plt.clf()
-    
+
     plt.plot(np.asarray(train_kld), label='train_kld')
     plt.xlabel('evaluation step')
     plt.ylabel('metrics')
@@ -310,20 +310,20 @@ def plot_loss_vae(exp_dir, train_loss,  train_x_loss, train_kld):
     plt.legend(loc='upper right')
     plt.savefig(os.path.join(exp_dir, 'train_kld.png' ))
     plt.clf()
-    
-    
+
+
 if __name__ == '__main__':
-    
+
     data_source_dir = '/u/vermavik/data/CelebAsmall'
     fname = 'temp'
-   
+
     ## load the training data
-    
-    print 'loading celebA'
+
+    #print 'loading celebA'
     train_loader, test_loader=load_celebA(1, 100, 100, 2, data_source_dir)
     n_colors = 3
     spatial_width = 64
-    
+
     for batch_idx, (data, target) in enumerate(train_loader):
         data = data.numpy()
         """
@@ -333,7 +333,7 @@ if __name__ == '__main__':
             pixels = data[:,i,:,:].ravel()
             means.append(np.mean(pixels))
             stdevs.append(np.std(pixels))
-        
+
         print("means: {}".format(means))
         print("stdevs: {}".format(stdevs))
         """
