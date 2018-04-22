@@ -64,12 +64,9 @@ def parse_args():
     parser.add_argument('--stride', default=2, type=int,
                         help='stride in conv layers')
     
-    parser.add_argument('--use_decoder', type = bool, default = True,
-                        help='whether should we use decoder')
-    parser.add_argument('--use_encoder', type = bool, default = True,
-                        help='whether should we use encoder')
-   
-    parser.add_argument('--encode_every_step', type=int, default=0)
+    
+    parser.add_argument('--encode_every_step', type=int, default=0, help = 'use encoder at every step')
+    parser.add_argument('--encoder_one_update', type=int, default=0, help = 'update encoder param based on one encoding or multiple encoding')
     parser.add_argument('--alpha1', type=float, default=1.0,help='coefficient for reconstruction loss')
     parser.add_argument('--alpha2', type=float, default= 1.0,help='coefficient for log_p_reverse')
     parser.add_argument('--alpha3', type=float, default=1.0,help='coefficient for KLD')
@@ -89,7 +86,9 @@ def parse_args():
                         help='probability for bernouli distribution of adding noise of 1 to each input')
     parser.add_argument('--avg', default=0, type=float)
     parser.add_argument('--std', default=1., type=float)
-    parser.add_argument('--noise', default='gaussian', choices=['gaussian', 'binomial'])
+    parser.add_argument('--noise', default='gaussian', choices=['gaussian', 'binomial', 'mean_var'],
+                        help='noise from which samples are generated. mean_var : for using mean and var of batch as  \
+                        the mean and variance for random number generation')
     
     
     parser.add_argument('--num_steps', type=int, default=1,
@@ -123,13 +122,15 @@ def parse_args():
 def experiment_name(dataset='celebA',
                     act = 'relu',
                     cumul_update = 1,
+                    encode_every_step= 1,
+                    encoder_one_update= 1,
                     meta_steps=10,
                     sigma = 0.0001,
                     temperature_factor = 1.1,
                     alpha1 = 1.0,
                     alpha2 = 1.0,
                     alpha3 = 1.0,
-                    grad_norm_max = 5.0,
+                    #grad_norm_max = 5.0,
                     epochs=10,
                     z_size = 256,
                     init_ch =16,
@@ -138,26 +139,30 @@ def experiment_name(dataset='celebA',
                     transition_steps =3, 
                     kernel_size = 2,
                     stride =2,
+                    noise = 'gaussian',
                     job_id=None,
                     add_name=''):
-    exp_name = str(dataset)
-    exp_name += '_act_'+str(act)
-    exp_name += '_cumul_update_'+str(cumul_update)
-    exp_name += '_meta_steps_'+str(meta_steps)
+    #exp_name = str(dataset)
+    exp_name = str(act)
+    exp_name += '_cumul_update_' + str(cumul_update)
+    exp_name += '_enc_every_step_' + str(encode_every_step)
+    exp_name += '_enc_one_update_' + str(encoder_one_update)
+    exp_name += '_meta_step_'+str(meta_steps)
     exp_name += '_sigma_'+str(sigma)
-    exp_name += '_temp_factor_'+str(temperature_factor)
+    exp_name += '_temp_fact_'+str(temperature_factor)
     exp_name += '_a1_'+str(alpha1)
     exp_name += '_a2_'+str(alpha2)
     exp_name += '_a3_'+str(alpha3)
-    exp_name += '_grad_norm_max_'+str(grad_norm_max)
-    exp_name += '_epochs_'+str(epochs)
-    exp_name += '_z_size_'+str(z_size)
+    #exp_name += '_grad_norm_max_'+str(grad_norm_max)
+    exp_name += '_epch_'+str(epochs)
+    exp_name += '_z_sz_'+str(z_size)
     exp_name += '_init_ch_'+str(init_ch)
-    exp_name += '_enc_fc_size_'+str(enc_fc_size)
-    exp_name += '_trans_size_'+str(transition_size)
-    exp_name += '_trans_steps_'+str(transition_steps)
-    exp_name += '_kernel_size_'+str(kernel_size)
-    exp_name += '_stride_'+str(stride)
+    exp_name += '_enc_fc_sz_'+str(enc_fc_size)
+    exp_name += '_tran_sz_'+str(transition_size)
+    exp_name += '_tran_step_'+str(transition_steps)
+    exp_name += '_krnl_size_'+str(kernel_size)
+    exp_name += '_strd_'+str(stride)
+    exp_name += '_ns_'+str(noise)
     if job_id!=None:
         exp_name += '_job_id_'+str(job_id)
     if add_name!='':
@@ -231,19 +236,19 @@ def forward_diffusion(x, model, loss_fn,temperature, step):
     x = Variable(x.data, requires_grad=False)
     mu, sigma = model.encode(x, step)
     z = model.reparameterize(mu, sigma)
-    z_tilde, log_p_reverse, sigma, h2 = model.transition( z, temperature, step)
+    z_tilde, log_p_reverse, mu, sigma = model.transition( z, temperature, step)
     x_tilde = model.decode(z_tilde,step)
     x_loss = loss_fn (x_tilde,x)## sum over axis=1
     total_loss = log_p_reverse + x_loss
     
-    return x_tilde, total_loss, z_tilde, x_loss, log_p_reverse, sigma, h2
+    return x_tilde, total_loss, z_tilde, x_loss, log_p_reverse, mu , sigma
 
 
 
 def train(args, lrate):   
     
     tmp='/Tmp/vermavik/'
-    home='/u/vermavik/'
+    home='/data/milatmp1/vermavik/'
     
     
     dataset = args.dataset
@@ -260,13 +265,15 @@ def train(args, lrate):
     exp_name=experiment_name(dataset = args.dataset,
                     act = args.activation,
                     cumul_update = args.cumul_update,
+                    encode_every_step= args.encode_every_step,
+                    encoder_one_update= args.encoder_one_update,
                     meta_steps = args.meta_steps,
                     sigma = args.sigma,
                     temperature_factor = args.temperature_factor,
                     alpha1 = args.alpha1,
                     alpha2 = args.alpha2,
                     alpha3 = args.alpha3,
-                    grad_norm_max = args.grad_max_norm,
+                    #grad_norm_max = args.grad_max_norm,
                     epochs = args.epochs,
                     z_size = args.nl,
                     init_ch = args.init_ch,
@@ -275,6 +282,7 @@ def train(args, lrate):
                     transition_steps = args.transition_steps,
                     kernel_size = args.kernel_size,
                     stride = args.stride,
+                    noise = args.noise,
                     job_id=args.job_id,
                     add_name=args.add_name)
     
@@ -401,10 +409,12 @@ def train(args, lrate):
                     optimizer_decoder.step()
                 else:
                     loss.backward()
+                    if args.encoder_one_update == 1 and meta_step == 0:
+                        optimizer_encoder.step()
                     #total_norm = clip_grad_norm(model.parameters(), args.grad_max_norm)
                     #print ('step', meta_step, total_norm)
                     if meta_step==args.meta_steps-1:
-                        if encode==True:
+                        if args.encoder_one_update == 0:
                             optimizer_encoder.step()
                         optimizer_transition.step()
                         optimizer_decoder.step()
@@ -449,11 +459,11 @@ def train(args, lrate):
                 data_forward_diffusion = data
                 for num_step in range(args.num_steps * args.meta_steps):
                     #print "Forward temperature", temperature_forward
-                    data_forward_diffusion, _, _, _, _, _, _ = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward, num_step)
+                    data_forward_diffusion, _, z, _, _, mu, sigma = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward, num_step)
                     #print data_forward_diffusion.shape
                     #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
                     data_forward_diffusion = data_forward_diffusion.view(-1, input_shape[0], input_shape[1], input_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                    if num_step%2==0:
+                    if num_step == args.meta_steps-1:
                         plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
                     
                     temperature_forward = temperature_forward * args.temperature_factor;
@@ -467,9 +477,21 @@ def train(args, lrate):
                              
                 if args.noise == "gaussian":
                     z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
-                else:
+                elif args.noise == "binomial":
                     z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
-
+                elif args.noise == "mean_var":
+                    mu = z.data.cpu().numpy().mean(axis=0)### get mean over the batch
+                    sigma = z.data.cpu().numpy().std(axis=0)### get std over the batch
+                    #sigma = np.multiply(sigma,0.5)
+                    #std = np.exp(sigma)
+                    #print (std.shape)
+                    #print (mu.shape)
+                    #eps = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))
+                    #z_sampled = np.multiply(eps, std)
+                    z_sampled = np.random.normal(mu, sigma, size=(args.batch_size, args.nl))
+                    
+                    #print (z_sampled)
+                                        
                 temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps - 1))
 
                 z = torch.from_numpy(np.asarray(z_sampled).astype('float32'))

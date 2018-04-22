@@ -618,7 +618,7 @@ class Net_svhn(nn.Module):
     ## code replicating anirudh's theano code
     def __init__(self, args, input_shape=(3,32,32)):
         super(Net_svhn, self).__init__()
-        print ('damn')
+       
         self.args = args
         self.init_ch = args.init_ch
         self.input_shape = input_shape
@@ -627,7 +627,6 @@ class Net_svhn(nn.Module):
         self.stride = args.stride
         self.kernel_size = args.kernel_size
         padsize = 1
-        print ('pad')
         
         if self.args.activation == 'relu':
             self.act = nn.ReLU()
@@ -841,7 +840,7 @@ class Net_svhn(nn.Module):
         
         z_new = eps.mul(sigma.mul(0.5).exp_()).mul(sigma_).add_(mu)
         #print ('z_new', np.isnan(z_new.data.cpu().numpy()).any())
-        z_new = (z_new - z_new.mean(0))/(0.001+ z_new.std(0))
+        #z_new = (z_new - z_new.mean(0))/(0.001+ z_new.std(0))
         #print ('z_new_mean', np.isnan(z_new.mean(0).data.cpu().numpy()).any())
         #print ('z_new_std', np.isnan(z_new.std(0).data.cpu().numpy()).any())
         #print ('z_new', np.isnan(z_new.data.cpu().numpy()).any())

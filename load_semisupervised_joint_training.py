@@ -3,6 +3,8 @@ Created on 21 Nov 2017
 
 @author: vermav1
 '''
+## used for jointly training VAE for SSL learning
+
 import os
 import numpy as np
 from glob import glob
