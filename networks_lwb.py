@@ -26,6 +26,8 @@ class Net(nn.Module):
 
         if self.args.activation == 'relu':
             self.act = nn.ReLU()
+        elif self.args.activation == 'elu':
+            self.act = nn.ELU()
         elif self.args.activation == 'leakyrelu':
             self.act = nn.LeakyReLU()
         self.sigmoid = nn.Sigmoid()
@@ -313,6 +315,8 @@ class Net_cifar(nn.Module):
 
         if self.args.activation == 'relu':
             self.act = nn.ReLU()
+        elif self.args.activation == 'elu':
+            self.act = nn.ELU()
         elif self.args.activation == 'leakyrelu':
             self.act = nn.LeakyReLU()
         self.sigmoid = nn.Sigmoid()
@@ -600,6 +604,8 @@ class Net_svhn(nn.Module):
 
         if self.args.activation == 'relu':
             self.act = nn.ReLU()
+        elif self.args.activation == 'elu':
+            self.act = nn.ELU()
         elif self.args.activation == 'leakyrelu':
             self.act = nn.LeakyReLU()
         self.sigmoid = nn.Sigmoid()
@@ -889,6 +895,8 @@ class Net_svhn_theano(nn.Module):
 
         if self.args.activation == 'relu':
             self.act = nn.ReLU()
+        elif self.args.activation == 'elu':
+            self.act = nn.ELU()
         elif self.args.activation == 'leakyrelu':
             self.act = nn.LeakyReLU()
         self.sigmoid = nn.Sigmoid()

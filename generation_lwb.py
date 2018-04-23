@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument('--dataset', type=str, default='celebasmall',
                         help='Name of dataset to use.')
     parser.add_argument('--activation', type=str, default='leakyrelu',
-                        help='activation function to use in the network except the last layer of decoder')
+                        help='activation function to use in the network except the last layer of decoder. elu, relu, leakyrelu')
     parser.add_argument('--epochs', type = int, default = 10,
                         help='num of epochs')
     parser.add_argument('--batch_size', default=100, type=int,
@@ -226,8 +226,8 @@ def forward_diffusion(x, model, loss_fn,temperature, step):
 
 def train(args, lrate):
 
-    tmp='/Tmp/goyalani/'
-    home='/u/goyalani/'
+    tmp='/Tmp/vermavik/'
+    home='/data/milatmp1/vermavik/'
 
 
     dataset = args.dataset
