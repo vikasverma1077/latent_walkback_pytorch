@@ -1,5 +1,6 @@
 ## copied from semi-supervised wohlert repo##
 import torch
+from torch import nn
 from torch.autograd import Variable
 
 
@@ -54,3 +55,167 @@ def log_sum_exp(tensor, dim=-1, sum_op=torch.sum):
     """
     max, _ = torch.max(tensor, dim=dim, keepdim=True)
     return torch.log(sum_op(torch.exp(tensor - max), dim=dim, keepdim=True) + 1e-8) + max
+
+
+def get_x_z_at_each_step(x, model,temperature, step):
+    x = Variable(x.data, requires_grad=False)
+    mu, sigma = model.encode(x, step)
+    z = model.reparameterize(mu, sigma)
+    z_tilde, log_p_reverse, mu, sigma = model.transition( z, temperature, step)
+    x_tilde = model.decode(z_tilde,step)
+    
+    return z, z_tilde, x_tilde, mu
+
+
+def get_ssl_results(model, num_classes, train_loader, test_loader, step, filep, num_epochs, args, num_of_batches, img_shape):
+        C = nn.Sequential(
+            nn.Linear(args.nl, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Linear(512, num_classes),
+            nn.Softmax())
+        
+        
+        if torch.cuda.is_available():
+            C = C.cuda()
+        
+        c_optimizer = torch.optim.Adam(C.parameters(), lr=0.0001, betas=(0.9,0.99))
+        loss_fn = nn.CrossEntropyLoss()
+        
+        def train(epoch):
+            C.train()
+            ## train classifier
+            for batch_idx, (data, target) in enumerate(train_loader):
+                if batch_idx < num_of_batches:
+                    if args.cuda:
+                        data, target = data.cuda(), target.cuda()
+                    data, target = Variable(data), Variable(target)
+                    
+                    x = data
+                    temperature_forward = args.temperature
+                    for i in range(step+1):
+                        z, z_tilde, x_tilde, mu = get_x_z_at_each_step(x, model,temperature_forward, step=i)
+                        x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                        temperature_forward = temperature_forward * args.temperature_factor;
+                    
+                    c_optimizer.zero_grad()
+                    output = C(mu)
+                    loss = loss_fn(output, target) 
+                    loss.backward()
+                    c_optimizer.step()
+                    if batch_idx % 100 == 0:
+                        str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                            epoch, batch_idx * len(data), len(train_loader.dataset),
+                            100. * batch_idx / len(train_loader), loss.data[0])
+                        print(str)
+                        filep.write(str+ '\n')
+        
+        def test():
+        
+            C.eval()
+            test_loss = 0
+            correct = 0
+            for data, target in test_loader:
+                if args.cuda:
+                    data, target = data.cuda(), target.cuda()
+                data, target = Variable(data, volatile=True), Variable(target)
+                x = data
+                temperature_forward = args.temperature
+                for i in range(step+1):
+                    z, z_tilde, x_tilde, mu = get_x_z_at_each_step(x, model,temperature_forward, step=i)
+                    x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                    temperature_forward = temperature_forward * args.temperature_factor;
+                
+                output = C(mu)
+                test_loss += loss_fn(output, target).data[0]*target.shape[0] # sum up batch loss
+                pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
+                correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
+        
+            test_loss /= len(test_loader.dataset)
+            str = '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
+                test_loss, correct, len(test_loader.dataset),
+                100. * correct / len(test_loader.dataset))
+            print(str)
+            filep.write(str+'\n')
+                    
+        
+        for epoch in range(1, num_epochs + 1):
+            train(epoch)
+            test()
+            
+            
+
+def get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep, num_epochs, args, num_of_batches, img_shape):
+        C = nn.Sequential(
+            nn.Linear(args.nl, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Linear(512, num_classes),
+            nn.Softmax())
+        
+        
+        if torch.cuda.is_available():
+            C = C.cuda()
+        
+        c_optimizer = torch.optim.Adam(C.parameters(), lr=0.0001, betas=(0.9,0.99))
+        loss_fn = nn.CrossEntropyLoss()
+        
+        def train(epoch):
+            C.train()
+            ## train classifier
+            for batch_idx, (data, target) in enumerate(train_loader):
+                if batch_idx < num_of_batches:
+                    if args.cuda:
+                        data, target = data.cuda(), target.cuda()
+                    data, target = Variable(data), Variable(target)
+                    
+                    mu, sigma = model.encode(data)
+                    
+                    c_optimizer.zero_grad()
+                    output = C(mu)
+                    loss = loss_fn(output, target) 
+                    loss.backward()
+                    c_optimizer.step()
+                    if batch_idx % 100 == 0:
+                        str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                            epoch, batch_idx * len(data), len(train_loader.dataset),
+                            100. * batch_idx / len(train_loader), loss.data[0])
+                        print(str)
+                        filep.write(str+ '\n')
+        
+        def test():
+        
+            C.eval()
+            test_loss = 0
+            correct = 0
+            for data, target in test_loader:
+                if args.cuda:
+                    data, target = data.cuda(), target.cuda()
+                data, target = Variable(data, volatile=True), Variable(target)
+                
+                mu, sigma = model.encode(data)
+                
+                output = C(mu)
+                test_loss += loss_fn(output, target).data[0]*target.shape[0] # sum up batch loss
+                pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
+                correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
+        
+            test_loss /= len(test_loader.dataset)
+            str = '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
+                test_loss, correct, len(test_loader.dataset),
+                100. * correct / len(test_loader.dataset))
+            print(str)
+            filep.write(str+'\n')
+                    
+        
+        for epoch in range(1, num_epochs + 1):
+            train(epoch)
+            test()
+
+

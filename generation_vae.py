@@ -28,6 +28,7 @@ from lib.distributions import log_normal2
 
 from networks_vae import *
 from load import *
+from utils import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
 from collections import OrderedDict
@@ -35,7 +36,8 @@ from collections import OrderedDict
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='celebasmall',
+    parser.add_argument('--ssl', type=int, default=0, help= 'whether to do ssl on z-space')
+    parser.add_argument('--dataset', type=str, default='svhn',
                         help='Name of dataset to use.')
     parser.add_argument('--epochs', type = int, default = 10,
                         help='num of epochs')
@@ -44,9 +46,9 @@ def parse_args():
     parser.add_argument('--data_aug', type=int, default=0)
     
     
-    parser.add_argument('--init_ch', default=32, type=int,
+    parser.add_argument('--init_ch', default=128, type=int,
                         help='number of channel in first conv layer')
-    parser.add_argument('--nl', type = int, default = 128,
+    parser.add_argument('--nl', type = int, default = 1024,
                         help='Size of Latent Size')
      
     
@@ -154,8 +156,8 @@ def forward_diffusion(x, model, loss_fn):
 def train(args, lrate):   
     
     tmp='/Tmp/vermavik/'
-    home='/u/vermavik/'
-    
+    home='/data/milatmp1/vermavik/'
+
     
     dataset = args.dataset
     #data_source_dir = home+'data/'+dataset+'/'
@@ -187,6 +189,15 @@ def train(args, lrate):
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
+    
+    result_path = os.path.join(result_dir , 'out.txt')
+    filep = open(result_path, 'w')
+    
+    out_str = str(args)
+    print(out_str)
+    filep.write(out_str + '\n')
+    
+    
     """   
     #copy_script_to_folder(os.path.abspath(__file__), temp_result_dir)
     result_path = os.path.join(temp_result_dir , 'out.txt')
@@ -322,6 +333,10 @@ def train(args, lrate):
                 x_sampled  = model.decode(z)
                     #print 'On step number, using temperature', i, temperature
                 reverse_time(scl, shft, x_sampled.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch), input_shape)
+        
+        if args.ssl==1:    
+            get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+        
                     
                 
 if __name__ == '__main__':

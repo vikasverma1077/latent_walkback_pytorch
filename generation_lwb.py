@@ -27,6 +27,7 @@ from lib.distributions import log_normal2
 
 from networks_lwb import * #Net_svhn_theano
 from load import *
+from utils import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
 from collections import OrderedDict
@@ -34,6 +35,7 @@ from collections import OrderedDict
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--ssl', type=int, default=0, help= 'whether to do ssl on z-space')
     parser.add_argument('--dataset', type=str, default='celebasmall',
                         help='Name of dataset to use.')
     parser.add_argument('--activation', type=str, default='leakyrelu',
@@ -276,6 +278,14 @@ def train(args, lrate):
 
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
+        
+    result_path = os.path.join(result_dir , 'out.txt')
+    filep = open(result_path, 'w')
+    
+    out_str = str(args)
+    print(out_str)
+    filep.write(out_str + '\n')     
+    
     """
     #copy_script_to_folder(os.path.abspath(__file__), temp_result_dir)
     result_path = os.path.join(temp_result_dir , 'out.txt')
@@ -469,7 +479,11 @@ def train(args, lrate):
                     else:
                         temperature /= args.temperature_factor
                     z = z_new
-
+        
+        if args.ssl==1:    
+            get_ssl_results(model, num_classes, train_loader, test_loader, step=0, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+                              
+            
 
 if __name__ == '__main__':
     args= parse_args()
