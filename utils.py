@@ -2,12 +2,16 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
+import torch
+from torchvision import datasets, transforms
+
 from collections import OrderedDict
 import cPickle as pickle
 import os
 import numpy as np
 
 import matplotlib.pyplot as plt
+from operator import __or__
 import seaborn as sns
 sns.set(color_codes=True)
 
@@ -117,7 +121,88 @@ def get_x_z_at_each_step(x, model,temperature, step):
     return z, z_tilde, x_tilde, mu
 
 
-def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_classes, train_loader, test_loader, step, filep, num_epochs, args, num_of_batches, img_shape):
+def get_sampler(labels,n_labels, n=None):
+    from torch.utils.data.sampler import SubsetRandomSampler
+    # Only choose digits in n_labels
+    (indices,) = np.where(reduce(__or__, [labels == i for i in np.arange(n_labels)]))
+
+    # Ensure uniform distribution of labels
+    np.random.shuffle(indices)
+    indices = np.hstack([list(filter(lambda idx: labels[idx] == i, indices))[:n] for i in range(n_labels)])
+
+    indices = torch.from_numpy(indices)
+    sampler = SubsetRandomSampler(indices)
+    return sampler
+
+
+def load_data_subset(data_aug, batch_size,workers,dataset, data_target_dir, labels_per_class=100):
+    ## copied from GibbsNet_pytorch/load.py
+    import numpy as np
+    from functools import reduce
+    from operator import __or__
+   
+      
+    if dataset == 'cifar10':
+        mean = [x / 255 for x in [125.3, 123.0, 113.9]]
+        std = [x / 255 for x in [63.0, 62.1, 66.7]]
+    elif dataset == 'cifar100':
+        mean = [x / 255 for x in [129.3, 124.1, 112.4]]
+        std = [x / 255 for x in [68.2, 65.4, 70.4]]
+    
+    elif dataset == 'svhn':
+        mean = [x / 255 for x in [127.5, 127.5, 127.5]]
+        std = [x / 255 for x in [127.5, 127.5, 127.5]]
+    
+    
+    else:
+        assert False, "Unknow dataset : {}".format(dataset)
+    
+    if data_aug==1:
+        train_transform = transforms.Compose(
+                                             [transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, padding=4), transforms.ToTensor(),
+                                              transforms.Normalize(mean, std)])
+        test_transform = transforms.Compose(
+                                            [transforms.ToTensor(), transforms.Normalize(mean, std)])
+    else:
+        train_transform = transforms.Compose(
+                                             [ transforms.ToTensor(),
+                                              transforms.Normalize(mean, std)])
+        test_transform = transforms.Compose(
+                                            [transforms.ToTensor(), transforms.Normalize(mean, std)])
+    if dataset == 'cifar10':
+        num_classes = 10
+        train_data = datasets.CIFAR10(data_target_dir, train=True, transform=train_transform,  download=True)
+        test_data = datasets.CIFAR10(data_target_dir, train=False, transform=test_transform,  download=True)
+        
+    elif dataset == 'cifar100':
+        num_classes = 100
+        train_data = datasets.CIFAR100(data_target_dir, train=True, transform=train_transform,  download=True)
+        test_data = datasets.CIFAR100(data_target_dir, train=False, transform=test_transform,  download=True)
+        
+    elif dataset == 'svhn':
+        num_classes = 10
+        train_data = datasets.SVHN(data_target_dir, split='train', transform=train_transform,  download=True)
+        test_data = datasets.SVHN(data_target_dir, split='test', transform=test_transform,  download=True)
+        extra_data = datasets.SVHN(data_target_dir, split='extra', transform=train_transform,  download=True)
+        
+    elif dataset == 'stl10':
+        num_classes = 10
+        train_data = datasets.STL10(data_target_dir, split='train', transform=train_transform, download=True)
+        test_data = datasets.STL10(data_target_dir, split='test', transform=test_transform,  download=True)
+        
+    elif dataset == 'imagenet':
+        assert False, 'Do not finish imagenet code'
+    else:
+        assert False, 'Do not support dataset : {}'.format(dataset)
+
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False,
+                         num_workers=workers, pin_memory=True, sampler=get_sampler(train_data.labels,num_classes, labels_per_class))
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False,
+                        num_workers=workers, pin_memory=True)
+    return train_loader, test_loader
+
+
+def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_classes, step, filep, num_epochs, args, labels_per_class, img_shape):
         C = nn.Sequential(
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
@@ -132,8 +217,10 @@ def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_class
         if torch.cuda.is_available():
             C = C.cuda()
         
-        c_optimizer = torch.optim.Adam(C.parameters(), lr=0.0001, betas=(0.9,0.99))
+        c_optimizer = torch.optim.Adam(C.parameters(), lr=0.001, betas=(0.9,0.99))
         loss_fn = nn.CrossEntropyLoss()
+        
+        train_loader, test_loader = load_data_subset(data_aug=1, batch_size=32,workers=2,dataset=args.dataset, data_target_dir= '/data/milatmp1/vermavik/data/'+args.dataset+'/', labels_per_class=labels_per_class)
         
         def train(epoch):
             C.train()
@@ -142,29 +229,28 @@ def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_class
             total = 0
             
             for batch_idx, (data, target) in enumerate(train_loader):
-                if batch_idx < num_of_batches:
-                    if args.cuda:
-                        data, target = data.cuda(), target.cuda()
-                    data, target = Variable(data), Variable(target)
-                    
-                    x = data
-                    temperature_forward = args.temperature
-                    for i in range(step+1):
-                        z, z_tilde, x_tilde, mu = get_x_z_at_each_step(x, model,temperature_forward, step=i)
-                        x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                        temperature_forward = temperature_forward * args.temperature_factor;
-                    
-                    c_optimizer.zero_grad()
-                    output = C(mu)
-                    loss = loss_fn(output, target) 
-                    loss.backward()
-                    c_optimizer.step()
-                    if batch_idx % 100 == 0:
-                        str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                            epoch, batch_idx * len(data), len(train_loader.dataset),
-                            100. * batch_idx / len(train_loader), loss.data[0])
-                        #print(str)
-                        filep.write(str+ '\n')
+                if args.cuda:
+                    data, target = data.cuda(), target.cuda()
+                data, target = Variable(data), Variable(target)
+                
+                x = data
+                temperature_forward = args.temperature
+                for i in range(step+1):
+                    z, z_tilde, x_tilde, mu = get_x_z_at_each_step(x, model,temperature_forward, step=i)
+                    x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                    temperature_forward = temperature_forward * args.temperature_factor;
+                
+                c_optimizer.zero_grad()
+                output = C(mu)
+                loss = loss_fn(output, target) 
+                loss.backward()
+                c_optimizer.step()
+                if batch_idx % 100 == 0:
+                    str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                        epoch, batch_idx * len(data), len(train_loader.dataset),
+                        100. * batch_idx / len(train_loader), loss.data[0])
+                    #print(str)
+                    filep.write(str+ '\n')
             
             train_loss += loss.data[0]*target.size(0)
             total += target.size(0)
@@ -225,7 +311,7 @@ def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_class
         
         return train_loss, test_loss, test_acc    
 
-def get_ssl_results_vae(train_loss, test_loss, test_acc, result_dir, model, num_classes, train_loader, test_loader, filep, num_epochs, args, num_of_batches, img_shape):
+def get_ssl_results_vae(train_loss, test_loss, test_acc, result_dir, model, num_classes, filep, num_epochs, args, labels_per_class, img_shape):
         C = nn.Sequential(
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
@@ -243,6 +329,7 @@ def get_ssl_results_vae(train_loss, test_loss, test_acc, result_dir, model, num_
         c_optimizer = torch.optim.Adam(C.parameters(), lr=0.0001, betas=(0.9,0.99))
         loss_fn = nn.CrossEntropyLoss()
         
+        train_loader, test_loader = load_data_subset(data_aug=1, batch_size=32,workers=2,dataset=args.dataset, data_target_dir= '/data/milatmp1/vermavik/data/'+args.dataset+'/', labels_per_class=labels_per_class)
         
         def train(epoch):
             C.train()
@@ -250,27 +337,27 @@ def get_ssl_results_vae(train_loss, test_loss, test_acc, result_dir, model, num_
             train_loss = 0
             total = 0
             for batch_idx, (data, target) in enumerate(train_loader):
-                if batch_idx < num_of_batches:
-                    if args.cuda:
-                        data, target = data.cuda(), target.cuda()
-                    data, target = Variable(data), Variable(target)
-                    
-                    mu, sigma = model.encode(data)
-                    
-                    c_optimizer.zero_grad()
-                    output = C(mu)
-                    loss = loss_fn(output, target) 
-                    loss.backward()
-                    c_optimizer.step()
-                    if batch_idx % 100 == 0:
-                        str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                            epoch, batch_idx * len(data), len(train_loader.dataset),
-                            100. * batch_idx / len(train_loader), loss.data[0])
-                        #print(str)
-                        filep.write(str+ '\n')
-                    train_loss += loss.data[0]*target.size(0)
-                    total += target.size(0)
-            
+                
+                if args.cuda:
+                    data, target = data.cuda(), target.cuda()
+                data, target = Variable(data), Variable(target)
+                
+                mu, sigma = model.encode(data)
+                
+                c_optimizer.zero_grad()
+                output = C(mu)
+                loss = loss_fn(output, target) 
+                loss.backward()
+                c_optimizer.step()
+                if batch_idx % 100 == 0:
+                    str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                        epoch, batch_idx * len(data), len(train_loader.dataset),
+                        100. * batch_idx / len(train_loader), loss.data[0])
+                    #print(str)
+                    filep.write(str+ '\n')
+                train_loss += loss.data[0]*target.size(0)
+                total += target.size(0)
+        
             return train_loss/total
             
         def test():

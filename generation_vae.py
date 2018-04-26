@@ -50,7 +50,7 @@ def parse_args():
                         help='number of channel in first conv layer')
     parser.add_argument('--nl', type = int, default = 1024,
                         help='Size of Latent Size')
-     
+    parser.add_argument('--alpha', type=float, default=0.001,help='coefficient for KLD') 
     
     parser.add_argument('--lr', default=0.0001, type=float,
                         help='Initial learning rate. ' + \
@@ -78,6 +78,7 @@ def experiment_name(dataset='celebA',
                     epochs=10,
                     z_size = 256,
                     init_ch =16,
+                    alpha = 0.001,
                     job_id=None,
                     add_name=''):
     exp_name = 'vae_'
@@ -85,6 +86,7 @@ def experiment_name(dataset='celebA',
     exp_name += '_epochs_'+str(epochs)
     exp_name += '_z_size_'+str(z_size)
     exp_name += '_init_ch_'+str(init_ch)
+    exp_name += '_alpha_'+str(alpha)
     if job_id!=None:
         exp_name += '_job_id_'+str(job_id)
     if add_name!='':
@@ -137,7 +139,7 @@ def compute_loss(x, model, loss_fn):
     
     KLD = -0.5 * torch.sum(1 + sigma - mu.pow(2) - sigma.exp())
     KLD /= args.batch_size 
-    loss = x_loss + 0.001*KLD
+    loss = x_loss + args.alpha*KLD
     
     return loss, x_loss, KLD
 
@@ -174,6 +176,7 @@ def train(args, lrate):
                     epochs = args.epochs,
                     z_size = args.nl,
                     init_ch = args.init_ch,
+                    alpha = args.alpha,
                     job_id=args.job_id,
                     add_name=args.add_name)
     
@@ -342,7 +345,7 @@ def train(args, lrate):
         
         
         if args.ssl==1:
-            train_ssl_loss, test_ssl_loss, test_ssl_acc= get_ssl_results_vae(train_ssl_loss, test_ssl_loss, test_ssl_acc,result_dir, model, num_classes, train_loader, test_loader, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+            train_ssl_loss, test_ssl_loss, test_ssl_acc= get_ssl_results_vae(train_ssl_loss, test_ssl_loss, test_ssl_acc,result_dir, model, num_classes, train_loader, test_loader, filep = filep, num_epochs=200, args=args, labels_per_class= 400, img_shape= input_shape)
     filep.close()
 
                     

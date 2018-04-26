@@ -121,8 +121,11 @@ def experiment_name(dataset='celebA',
                     cumul_update = 1,
                     encode_every_step= 1,
                     encoder_one_update= 1,
+                    batch_size =100,
+                    lr = 0.0001,
                     meta_steps=10,
                     sigma = 0.0001,
+                    temperature = 1.0,
                     temperature_factor = 1.1,
                     alpha1 = 1.0,
                     alpha2 = 1.0,
@@ -143,15 +146,18 @@ def experiment_name(dataset='celebA',
     exp_name = str(act)
     exp_name += '_cumul_update_' + str(cumul_update)
     exp_name += '_enc_every_step_' + str(encode_every_step)
-    exp_name += '_enc_one_update_' + str(encoder_one_update)
+    exp_name += '_enc_one_upd_' + str(encoder_one_update)
+    exp_name += '_bs_'+str(batch_size)
+    exp_name += '_lr_'+str(lr)
     exp_name += '_meta_step_'+str(meta_steps)
     exp_name += '_sigma_'+str(sigma)
+    exp_name += '_temp_'+str(temperature)
     exp_name += '_temp_fact_'+str(temperature_factor)
     exp_name += '_a1_'+str(alpha1)
     exp_name += '_a2_'+str(alpha2)
     exp_name += '_a3_'+str(alpha3)
     #exp_name += '_grad_norm_max_'+str(grad_norm_max)
-    exp_name += '_epch_'+str(epochs)
+    exp_name += '_eph_'+str(epochs)
     exp_name += '_z_sz_'+str(z_size)
     exp_name += '_init_ch_'+str(init_ch)
     exp_name += '_enc_fc_sz_'+str(enc_fc_size)
@@ -246,10 +252,13 @@ def train(args, lrate):
     exp_name=experiment_name(dataset = args.dataset,
                     act = args.activation,
                     meta_steps = args.meta_steps,
+                    lr = args.lr,
                     cumul_update = args.cumul_update,
                     encode_every_step= args.encode_every_step,
                     encoder_one_update= args.encoder_one_update,
+                    batch_size = args.batch_size,
                     sigma = args.sigma,
+                    temperature = args.temperature,
                     temperature_factor = args.temperature_factor,
                     alpha1 = args.alpha1,
                     alpha2 = args.alpha2,
@@ -308,11 +317,11 @@ def train(args, lrate):
         input_shape = (3,64,64)
     elif args.dataset== 'svhn':
         print('loading svhn')
-        train_loader, test_loader, extra_loader, num_classes = load_data(args.data_aug, args.batch_size ,2, dataset, '/u/vermavik/'+'data/DARC/'+dataset+'/')
+        train_loader, test_loader, extra_loader, num_classes = load_data(args.data_aug, args.batch_size ,2, dataset, home+'data/'+dataset+'/')
         input_shape = (3,32,32)
     elif args.dataset == 'cifar10':
         print('loading cifar10')
-        train_loader, test_loader, num_classes = load_data(args.data_aug, args.batch_size ,2, dataset, home+'data/DARC/'+dataset+'/')
+        train_loader, test_loader, num_classes = load_data(args.data_aug, args.batch_size ,2, dataset, home+'data/'+dataset+'/')
         input_shape = (3,32,32)
 
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -487,7 +496,7 @@ def train(args, lrate):
                         z = z_new
         
         if args.ssl==1:
-            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, train_loader, test_loader, step=0, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, step=0, filep = filep, num_epochs=200, args=args, labels_per_class= 400, img_shape= input_shape)
     filep.close()
 
             

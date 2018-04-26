@@ -23,7 +23,7 @@ import torchvision.transforms as transforms
 from folder import ImageFolder
 
 
-def get_sampler(labels, n=None):
+def get_sampler(labels,n_labels = 10, n=None):
     # Only choose digits in n_labels
     (indices,) = np.where(reduce(__or__, [labels == i for i in np.arange(n_labels)]))
 
@@ -51,7 +51,7 @@ def onehot(k):
     return encode
 
 
-n_labels = 10
+
 def get_mnist(location="./", batch_size=64, labels_per_class=100):
     from functools import reduce
     from operator import __or__
@@ -147,7 +147,7 @@ def load_data(data_aug,labels_per_class, batch_size,workers,dataset, data_target
         assert False, 'Do not support dataset : {}'.format(dataset)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False,
-                         num_workers=workers, pin_memory=True, sampler=get_sampler(train_data.labels, labels_per_class))
+                         num_workers=workers, pin_memory=True, sampler=get_sampler(train_data.labels, num_classes,labels_per_class))
     unlabelled_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True,
                          num_workers=workers, pin_memory=True)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False,
