@@ -280,7 +280,7 @@ def train(args, lrate):
         os.makedirs(result_dir)
         
     result_path = os.path.join(result_dir , 'out.txt')
-    filep = open(result_path, 'w')
+    filep = open(result_path, 'w',  buffering=0)
     
     out_str = str(args)
     print(out_str)
@@ -430,59 +430,61 @@ def train(args, lrate):
             if np.isnan(loss.data.cpu()[0]) or np.isinf(loss.data.cpu()[0]):
                 print('NaN detected')
                 return 1.
-
-            #batch_idx=0
-            if batch_idx%100==0:
-                plot_loss(model_dir, train_loss, train_x_loss, train_log_p_reverse, train_kld, train_loss_each_step, train_x_loss_each_step, train_log_p_reverse_each_step, args.meta_steps)
-                temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps -1 ))
-                temperature_forward = args.temperature
-                #print 'this'
-
-
-                data_forward_diffusion = data
-                for num_step in range(args.num_steps * args.meta_steps):
-                    data_forward_diffusion, _, _, _, _, _, _ = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward, num_step)
-                    #print data_forward_diffusion.shape
-                    #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
-                    data_forward_diffusion = data_forward_diffusion.view(-1, input_shape[0], input_shape[1], input_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                    if num_step%1==0:
-                        plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
-
-                    temperature_forward = temperature_forward * args.temperature_factor;
-
-                print("PLOTTING ORIGINAL IMAGE")
-                temp = data
-                plot_images(temp.data.cpu().numpy() , model_dir + '/' + 'orig_' + 'epoch_' + str(epoch) + '_batch_index_' +  str(batch_idx))
-
-                print("DONE PLOTTING ORIGINAL IMAGE")
-
-
-                if args.noise == "gaussian":
-                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
-                else:
-                    z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
-
-                temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps - 1))
-
-                z = torch.from_numpy(np.asarray(z_sampled).astype('float32'))
-                if args.cuda:
-                    z = z.cuda()
-                    z = Variable(z)
-                for i in range(args.num_steps*args.meta_steps):# + args.extra_steps):
-                    z_new_to_x, z_to_x, z_new  = model.sample(z, temperature, args.num_steps*args.meta_steps -i - 1)
-                    #print 'On step number, using temperature', i, temperature
-                    if i%1==0:
-                        reverse_time(scl, shft, z_new_to_x.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch) + '_step_' + str(i), input_shape)
-
-                    if temperature == args.temperature:
-                        temperature = temperature
+            
+            if args.ssl == 0:
+                #batch_idx=0
+                if batch_idx%100==0:
+                    plot_loss(model_dir, train_loss, train_x_loss, train_log_p_reverse, train_kld, train_loss_each_step, train_x_loss_each_step, train_log_p_reverse_each_step, args.meta_steps)
+                    temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps -1 ))
+                    temperature_forward = args.temperature
+                    #print 'this'
+    
+    
+                    data_forward_diffusion = data
+                    for num_step in range(args.num_steps * args.meta_steps):
+                        data_forward_diffusion, _, _, _, _, _, _ = forward_diffusion(data_forward_diffusion, model, loss_fn,temperature_forward, num_step)
+                        #print data_forward_diffusion.shape
+                        #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
+                        data_forward_diffusion = data_forward_diffusion.view(-1, input_shape[0], input_shape[1], input_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                        if num_step%1==0:
+                            plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_' + str(num_step))
+    
+                        temperature_forward = temperature_forward * args.temperature_factor;
+    
+                    print("PLOTTING ORIGINAL IMAGE")
+                    temp = data
+                    plot_images(temp.data.cpu().numpy() , model_dir + '/' + 'orig_' + 'epoch_' + str(epoch) + '_batch_index_' +  str(batch_idx))
+    
+                    print("DONE PLOTTING ORIGINAL IMAGE")
+    
+    
+                    if args.noise == "gaussian":
+                        z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
                     else:
-                        temperature /= args.temperature_factor
-                    z = z_new
+                        z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
+    
+                    temperature = args.temperature * (args.temperature_factor ** (args.num_steps*args.meta_steps - 1))
+    
+                    z = torch.from_numpy(np.asarray(z_sampled).astype('float32'))
+                    if args.cuda:
+                        z = z.cuda()
+                        z = Variable(z)
+                    for i in range(args.num_steps*args.meta_steps):# + args.extra_steps):
+                        z_new_to_x, z_to_x, z_new  = model.sample(z, temperature, args.num_steps*args.meta_steps -i - 1)
+                        #print 'On step number, using temperature', i, temperature
+                        if i%1==0:
+                            reverse_time(scl, shft, z_new_to_x.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch) + '_step_' + str(i), input_shape)
+    
+                        if temperature == args.temperature:
+                            temperature = temperature
+                        else:
+                            temperature /= args.temperature_factor
+                        z = z_new
         
         if args.ssl==1:    
-            get_ssl_results(model, num_classes, train_loader, test_loader, step=0, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
-                              
+            get_ssl_results(result_dir, model, num_classes, train_loader, test_loader, step=0, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+    filep.close()
+
             
 
 if __name__ == '__main__':

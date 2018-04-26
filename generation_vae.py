@@ -191,7 +191,7 @@ def train(args, lrate):
         os.makedirs(result_dir)
     
     result_path = os.path.join(result_dir , 'out.txt')
-    filep = open(result_path, 'w')
+    filep = open(result_path, 'w',  buffering=0)
     
     out_str = str(args)
     print(out_str)
@@ -300,43 +300,45 @@ def train(args, lrate):
                 return 1.
             
             #batch_idx=0
-            if batch_idx%500==0:
-                plot_loss_vae(model_dir, train_loss, train_x_loss,  train_kld)
-                
-                data_forward_diffusion = data
-               
-                    #print "Forward temperature", temperature_forward
-                data_forward_diffusion = forward_diffusion(data_forward_diffusion, model, loss_fn)
-                    #print data_forward_diffusion.shape
-                    #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
-                data_forward_diffusion = data_forward_diffusion.view(-1, input_shape[0], input_shape[1], input_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_')
+            if args.ssl == 0:
+                if batch_idx%500==0:
+                    plot_loss_vae(model_dir, train_loss, train_x_loss,  train_kld)
                     
-                
-                print "PLOTTING ORIGINAL IMAGE"
-                temp = data
-                plot_images(temp.data.cpu().numpy() , model_dir + '/' + 'orig_' + 'epoch_' + str(epoch) + '_batch_index_' +  str(batch_idx))
-
-                print "DONE PLOTTING ORIGINAL IMAGE"
-                
-                             
-                #if args.noise == "gaussian":
-                z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
-                #else:
-                #    z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
-
-                
-                z = torch.from_numpy(np.asarray(z_sampled).astype('float32'))
-                if args.cuda:
-                    z = z.cuda()
-                    z = Variable(z)
-                x_sampled  = model.decode(z)
-                    #print 'On step number, using temperature', i, temperature
-                reverse_time(scl, shft, x_sampled.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch), input_shape)
+                    data_forward_diffusion = data
+                   
+                        #print "Forward temperature", temperature_forward
+                    data_forward_diffusion = forward_diffusion(data_forward_diffusion, model, loss_fn)
+                        #print data_forward_diffusion.shape
+                        #data_forward_diffusion = np.asarray(data).astype('float32').reshape(args.batch_size, INPUT_SIZE)
+                    data_forward_diffusion = data_forward_diffusion.view(-1, input_shape[0], input_shape[1], input_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                    plot_images(data_forward_diffusion.data.cpu().numpy(), model_dir + '/' + "batch_" + str(batch_idx) + '_corrupted_' + 'epoch_' + str(epoch) + '_time_step_')
+                        
+                    
+                    print "PLOTTING ORIGINAL IMAGE"
+                    temp = data
+                    plot_images(temp.data.cpu().numpy() , model_dir + '/' + 'orig_' + 'epoch_' + str(epoch) + '_batch_index_' +  str(batch_idx))
+    
+                    print "DONE PLOTTING ORIGINAL IMAGE"
+                    
+                                 
+                    #if args.noise == "gaussian":
+                    z_sampled = np.random.normal(0.0, 1.0, size=(args.batch_size, args.nl))#.clip(0.0, 1.0)
+                    #else:
+                    #    z_sampled = np.random.binomial(1, 0.5, size=(args.batch_size, args.nl))
+    
+                    
+                    z = torch.from_numpy(np.asarray(z_sampled).astype('float32'))
+                    if args.cuda:
+                        z = z.cuda()
+                        z = Variable(z)
+                    x_sampled  = model.decode(z)
+                        #print 'On step number, using temperature', i, temperature
+                    reverse_time(scl, shft, x_sampled.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch), input_shape)
         
         if args.ssl==1:    
-            get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
-        
+            get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loader, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+    filep.close()
+
                     
                 
 if __name__ == '__main__':

@@ -2,6 +2,56 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
+from collections import OrderedDict
+import cPickle as pickle
+import os
+import numpy as np
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(color_codes=True)
+
+def plotting(exp_dir):
+    # Load the training log dictionary:
+    train_dict = pickle.load(open(os.path.join(exp_dir, 'log.pkl'), 'rb'))
+
+    ###########################################################
+    ### Make the vanilla train and test loss per epoch plot ###
+    ###########################################################
+   
+    plt.plot(np.asarray(train_dict['train_loss']), label='train_loss')
+        
+    #plt.ylim(0,2000)
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'train_loss.png' ))
+    plt.clf()
+    
+    
+    
+    plt.plot(np.asarray(train_dict['test_loss']), label='test_loss')
+       
+    #plt.ylim(0,100)
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'test_loss.png' ))
+    plt.clf()
+    
+        
+    plt.plot(np.asarray(train_dict['test_acc']), label='test_acc')
+       
+    #plt.ylim(0,100)
+    plt.xlabel('evaluation step')
+    plt.ylabel('metrics')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
+    plt.savefig(os.path.join(exp_dir, 'test_acc.png' ))
+    plt.clf()
+   
 
 
 def enumerate_discrete(x, y_dim):
@@ -67,7 +117,7 @@ def get_x_z_at_each_step(x, model,temperature, step):
     return z, z_tilde, x_tilde, mu
 
 
-def get_ssl_results(model, num_classes, train_loader, test_loader, step, filep, num_epochs, args, num_of_batches, img_shape):
+def get_ssl_results(result_dir, model, num_classes, train_loader, test_loader, step, filep, num_epochs, args, num_of_batches, img_shape):
         C = nn.Sequential(
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
@@ -88,6 +138,9 @@ def get_ssl_results(model, num_classes, train_loader, test_loader, step, filep, 
         def train(epoch):
             C.train()
             ## train classifier
+            train_loss = 0
+            total = 0
+            
             for batch_idx, (data, target) in enumerate(train_loader):
                 if batch_idx < num_of_batches:
                     if args.cuda:
@@ -110,9 +163,17 @@ def get_ssl_results(model, num_classes, train_loader, test_loader, step, filep, 
                         str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                             epoch, batch_idx * len(data), len(train_loader.dataset),
                             100. * batch_idx / len(train_loader), loss.data[0])
-                        print(str)
+                        #print(str)
                         filep.write(str+ '\n')
-        
+            
+            train_loss += loss.data[0]*target.size(0)
+            total += target.size(0)
+            
+            return train_loss/total
+            
+            
+            
+
         def test():
         
             C.eval()
@@ -138,17 +199,35 @@ def get_ssl_results(model, num_classes, train_loader, test_loader, step, filep, 
             str = '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
                 test_loss, correct, len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset))
-            print(str)
+            #print(str)
             filep.write(str+'\n')
-                    
-        
-        for epoch in range(1, num_epochs + 1):
-            train(epoch)
-            test()
             
+            return test_loss,  100. * correct / len(test_loader.dataset)        
+        
+        train_loss = []
+        test_loss=[]
+        test_acc=[]
+            
+        for epoch in range(1, num_epochs + 1):
+                
+            train_l = train(epoch)
+            test_l, test_a = test()
+            
+            train_loss.append(train_l)
+            test_loss.append(test_l)
+            test_acc.append(test_a)
+            
+            
+            train_log = OrderedDict()
+            train_log['train_loss'] = train_loss
+            train_log['test_loss']=test_loss
+            train_log['test_acc']=test_acc
+            
+            pickle.dump(train_log, open( os.path.join(result_dir,'log.pkl'), 'wb'))
+            plotting(result_dir)
             
 
-def get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep, num_epochs, args, num_of_batches, img_shape):
+def get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loader, filep, num_epochs, args, num_of_batches, img_shape):
         C = nn.Sequential(
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
@@ -166,9 +245,12 @@ def get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep, nu
         c_optimizer = torch.optim.Adam(C.parameters(), lr=0.0001, betas=(0.9,0.99))
         loss_fn = nn.CrossEntropyLoss()
         
+        
         def train(epoch):
             C.train()
             ## train classifier
+            train_loss = 0
+            total = 0
             for batch_idx, (data, target) in enumerate(train_loader):
                 if batch_idx < num_of_batches:
                     if args.cuda:
@@ -186,9 +268,13 @@ def get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep, nu
                         str = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                             epoch, batch_idx * len(data), len(train_loader.dataset),
                             100. * batch_idx / len(train_loader), loss.data[0])
-                        print(str)
+                        #print(str)
                         filep.write(str+ '\n')
-        
+                    train_loss += loss.data[0]*target.size(0)
+                    total += target.size(0)
+            
+            return train_loss/total
+            
         def test():
         
             C.eval()
@@ -210,12 +296,32 @@ def get_ssl_results_vae(model, num_classes, train_loader, test_loader, filep, nu
             str = '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
                 test_loss, correct, len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset))
-            print(str)
+            #print(str)
             filep.write(str+'\n')
-                    
+            
+            return test_loss,  100. * correct / len(test_loader.dataset)
+        
+        train_loss = []
+        test_loss=[]
+        test_acc=[]
+        
         
         for epoch in range(1, num_epochs + 1):
-            train(epoch)
-            test()
-
-
+                
+            train_l = train(epoch)
+            test_l, test_a = test()
+            
+            train_loss.append(train_l)
+            test_loss.append(test_l)
+            test_acc.append(test_a)
+            
+            print (train_loss, test_loss, test_acc)
+            
+            train_log = OrderedDict()
+            train_log['train_loss'] = train_loss
+            train_log['test_loss']=test_loss
+            train_log['test_acc']=test_acc
+            
+            pickle.dump(train_log, open( os.path.join(result_dir,'log.pkl'), 'wb'))
+            plotting(result_dir)
+        
