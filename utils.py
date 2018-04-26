@@ -315,7 +315,7 @@ def get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loade
             test_loss.append(test_l)
             test_acc.append(test_a)
             
-            print (train_loss, test_loss, test_acc)
+            #print (train_loss, test_loss, test_acc)
             
             train_log = OrderedDict()
             train_log['train_loss'] = train_loss
