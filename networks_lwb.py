@@ -429,29 +429,38 @@ class Net_cifar(nn.Module):
             self.bn12_list.append(nn.BatchNorm1d(self.flat_shape))
             self.decoder_params.extend(self.bn12_list[i].parameters())
 
-
-        self.conv_z_x_1 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*2, kernel_size=self.kernel_size, stride= self.stride)
+        
+        self.conv_z_x_1 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*4, kernel_size=self.kernel_size, stride= self.stride)
         self.decoder_params.extend(self.conv_z_x_1.parameters())
         self.bn13_list=nn.ModuleList()
         for i in range(args.meta_steps):
-            self.bn13_list.append(nn.BatchNorm2d(self.init_ch*2))
+            self.bn13_list.append(nn.BatchNorm2d(self.init_ch*4))
             self.decoder_params.extend(self.bn13_list[i].parameters())
 
-
-        self.conv_z_x_2 = nn.ConvTranspose2d(self.init_ch*2, self.init_ch, kernel_size = self.kernel_size, stride = self.stride)
+        
+        
+        self.conv_z_x_2 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*2, kernel_size=self.kernel_size, stride= self.stride)
         self.decoder_params.extend(self.conv_z_x_2.parameters())
         self.bn14_list=nn.ModuleList()
         for i in range(args.meta_steps):
-            self.bn14_list.append(nn.BatchNorm2d(self.init_ch))
+            self.bn14_list.append(nn.BatchNorm2d(self.init_ch*2))
             self.decoder_params.extend(self.bn14_list[i].parameters())
 
 
-        self.conv_z_x_3 = nn.ConvTranspose2d(self.init_ch, self.imgSize[0], kernel_size= self.kernel_size, stride= self.stride)
+        self.conv_z_x_3 = nn.ConvTranspose2d(self.init_ch*2, self.init_ch, kernel_size = self.kernel_size, stride = self.stride)
         self.decoder_params.extend(self.conv_z_x_3.parameters())
         self.bn15_list=nn.ModuleList()
         for i in range(args.meta_steps):
-            self.bn15_list.append(nn.BatchNorm2d(self.imgSize[0]))
+            self.bn15_list.append(nn.BatchNorm2d(self.init_ch))
             self.decoder_params.extend(self.bn15_list[i].parameters())
+
+
+        self.conv_z_x_4 = nn.ConvTranspose2d(self.init_ch, self.imgSize[0], kernel_size= 1, stride= 1)
+        self.decoder_params.extend(self.conv_z_x_4.parameters())
+        self.bn16_list=nn.ModuleList()
+        for i in range(args.meta_steps):
+            self.bn16_list.append(nn.BatchNorm2d(self.imgSize[0]))
+            self.decoder_params.extend(self.bn16_list[i].parameters())
 
 
         #self.conv_z_x_4 = nn.Conv2d(self.init_ch, self.imgSize[0], kernel_size= 1, stride= 1)
@@ -553,7 +562,7 @@ class Net_cifar(nn.Module):
 
 
     def decode (self, z_new, step):
-        #print z_new
+        #print (z_new.shape)
         d = self.act(self.bn12_list[step](self.fc_z_x_1(z_new)))
         #print (d.shape)
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
@@ -562,14 +571,16 @@ class Net_cifar(nn.Module):
         #print (d.shape)
         d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
         #print (d.shape)
-        d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        d = self.act(self.bn15_list[step](self.conv_z_x_3(d)))
+        #print (d.shape)
+        d = self.sigmoid(self.bn16_list[step](self.conv_z_x_4(d)))
         #print (d.shape)
         #d = self.sigmoid(self.bn16_list[step](self.conv_z_x_4(d)))
         #print (d.shape)
         shape = d.data.shape
         p =  d.view(-1, shape[1]*shape[2]*shape[3])
-        eps = 1e-4
-        p = torch.clamp(p, min= eps, max=1.0 - eps)
+        #eps = 1e-4
+        #p = torch.clamp(p, min= eps, max=1.0 - eps)
         #x_loss =  -T.nnet.binary_crossentropy(p, x).sum(axis=1)
         return p
 
@@ -578,7 +589,8 @@ class Net_cifar(nn.Module):
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
         d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
         d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
-        d = self.sigmoid(self.bn15_list[step](self.conv_z_x_3(d)))
+        d = self.act(self.bn15_list[step](self.conv_z_x_3(d)))
+        d = self.sigmoid(self.bn16_list[step](self.conv_z_x_4(d)))
         shape = d.data.shape
         x_new =  d.view(-1, shape[1]*shape[2]*shape[3])
 

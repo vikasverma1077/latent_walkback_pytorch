@@ -356,6 +356,11 @@ def train(args, lrate):
     train_loss_each_step = [[]]
     train_x_loss_each_step = [[]]
     train_log_p_reverse_each_step = [[]]
+    
+    ### for saving SSL metrics##
+    train_ssl_loss = []
+    test_ssl_loss=[]
+    test_ssl_acc=[] 
     #train_kld_each_step = [[]]
     for i in range(args.meta_steps-1):
         train_loss_each_step.append([])
@@ -481,8 +486,8 @@ def train(args, lrate):
                             temperature /= args.temperature_factor
                         z = z_new
         
-        if args.ssl==1:    
-            get_ssl_results(result_dir, model, num_classes, train_loader, test_loader, step=0, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+        if args.ssl==1:
+            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, train_loader, test_loader, step=0, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
     filep.close()
 
             

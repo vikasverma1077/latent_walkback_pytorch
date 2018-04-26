@@ -267,6 +267,10 @@ def train(args, lrate):
     
     #### for saving metrics for each step individually ###
     
+    train_ssl_loss = []
+    test_ssl_loss=[]
+    test_ssl_acc=[] 
+    
     for epoch in range(args.epochs):
         print ('epoch', epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
@@ -335,8 +339,10 @@ def train(args, lrate):
                         #print 'On step number, using temperature', i, temperature
                     reverse_time(scl, shft, x_sampled.data.cpu().numpy(), model_dir + '/batch_index_' + str(batch_idx) + '_inference_' + 'epoch_' + str(epoch), input_shape)
         
-        if args.ssl==1:    
-            get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loader, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
+        
+        
+        if args.ssl==1:
+            train_ssl_loss, test_ssl_loss, test_ssl_acc= get_ssl_results_vae(train_ssl_loss, test_ssl_loss, test_ssl_acc,result_dir, model, num_classes, train_loader, test_loader, filep = filep, num_epochs=100, args=args, num_of_batches= 40, img_shape= input_shape)
     filep.close()
 
                     

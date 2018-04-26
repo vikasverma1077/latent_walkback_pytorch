@@ -116,13 +116,13 @@ class VAE(nn.Module):
         self.imgSize = imgSize
         ## encoder###
         self.conv1 = nn.Conv2d(imgSize[0], self.init_ch, self.kernel_size, stride = self.stride)
-        kaiming_uniform(self.conv1.weight.data)
+        #kaiming_uniform(self.conv1.weight.data)
         self.bn1 = nn.BatchNorm2d(self.init_ch)
         self.conv2 = nn.Conv2d(self.init_ch, self.init_ch*2, self.kernel_size, stride = self.stride)
-        kaiming_uniform(self.conv2.weight.data)
+        #kaiming_uniform(self.conv2.weight.data)
         self.bn2 = nn.BatchNorm2d(self.init_ch*2)
         self.conv3= nn.Conv2d(self.init_ch*2, self.init_ch*4, self.kernel_size, stride = self.stride)
-        kaiming_uniform(self.conv3.weight.data)
+        #kaiming_uniform(self.conv3.weight.data)
         self.bn3 = nn.BatchNorm2d(self.init_ch*4)
         #self.conv4 = nn.Conv2d(64, 64, 4, stride=2)
         #self.bn4 = nn.BatchNorm2d(64)
@@ -132,30 +132,30 @@ class VAE(nn.Module):
         #self.fc1 = nn.Linear(self.flat_shape, 128)
         #self.bn5 = nn.BatchNorm1d(128)
         self.fc21 = nn.Linear(self.flat_shape, self.args.nl)
-        kaiming_uniform(self.fc21.weight.data)
+        #kaiming_uniform(self.fc21.weight.data)
         #self.bn5_1 = nn.BatchNorm1d(self.args.nl)
         self.fc22 = nn.Linear(self.flat_shape, self.args.nl)
-        kaiming_uniform(self.fc22.weight.data)
+        #kaiming_uniform(self.fc22.weight.data)
         #self.bn5_2 = nn.BatchNorm1d(self.args.nl)
         
         ### decoder###
         self.fc3 = nn.Linear(self.args.nl, self.flat_shape)
-        kaiming_uniform(self.fc3.weight.data)
+        #kaiming_uniform(self.fc3.weight.data)
               
         self.conv_z_1 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*4, kernel_size= self.kernel_size, stride= self.stride)#, padding=1)
-        kaiming_uniform(self.conv_z_1.weight.data)
+        #kaiming_uniform(self.conv_z_1.weight.data)
         self.bn8 = nn.BatchNorm2d(self.init_ch*4)
         
         self.conv_z_2 = nn.ConvTranspose2d(self.init_ch*4, self.init_ch*2, kernel_size= self.kernel_size, stride= self.stride)#, padding=1)
-        kaiming_uniform(self.conv_z_2.weight.data)
+        #kaiming_uniform(self.conv_z_2.weight.data)
         self.bn9 = nn.BatchNorm2d(self.init_ch*2)
         
         self.conv_z_3 = nn.ConvTranspose2d(self.init_ch*2, self.init_ch, kernel_size= self.kernel_size, stride= self.stride)#, padding=1)
-        kaiming_uniform(self.conv_z_3.weight.data)
+        #kaiming_uniform(self.conv_z_3.weight.data)
         self.bn10 = nn.BatchNorm2d(self.init_ch)
         
         self.conv_z_4 = nn.Conv2d(self.init_ch, self.imgSize[0], kernel_size= 1, stride= 1)#, padding=1)
-        kaiming_uniform(self.conv_z_4.weight.data)
+        #kaiming_uniform(self.conv_z_4.weight.data)
         self.bn11 = nn.BatchNorm2d(self.imgSize[0])
         
         

@@ -117,7 +117,7 @@ def get_x_z_at_each_step(x, model,temperature, step):
     return z, z_tilde, x_tilde, mu
 
 
-def get_ssl_results(result_dir, model, num_classes, train_loader, test_loader, step, filep, num_epochs, args, num_of_batches, img_shape):
+def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_classes, train_loader, test_loader, step, filep, num_epochs, args, num_of_batches, img_shape):
         C = nn.Sequential(
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
@@ -204,10 +204,7 @@ def get_ssl_results(result_dir, model, num_classes, train_loader, test_loader, s
             
             return test_loss,  100. * correct / len(test_loader.dataset)        
         
-        train_loss = []
-        test_loss=[]
-        test_acc=[]
-            
+                 
         for epoch in range(1, num_epochs + 1):
                 
             train_l = train(epoch)
@@ -225,9 +222,10 @@ def get_ssl_results(result_dir, model, num_classes, train_loader, test_loader, s
             
             pickle.dump(train_log, open( os.path.join(result_dir,'log.pkl'), 'wb'))
             plotting(result_dir)
-            
+        
+        return train_loss, test_loss, test_acc    
 
-def get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loader, filep, num_epochs, args, num_of_batches, img_shape):
+def get_ssl_results_vae(train_loss, test_loss, test_acc, result_dir, model, num_classes, train_loader, test_loader, filep, num_epochs, args, num_of_batches, img_shape):
         C = nn.Sequential(
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
@@ -301,11 +299,7 @@ def get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loade
             
             return test_loss,  100. * correct / len(test_loader.dataset)
         
-        train_loss = []
-        test_loss=[]
-        test_acc=[]
-        
-        
+                
         for epoch in range(1, num_epochs + 1):
                 
             train_l = train(epoch)
@@ -325,3 +319,4 @@ def get_ssl_results_vae(result_dir, model, num_classes, train_loader, test_loade
             pickle.dump(train_log, open( os.path.join(result_dir,'log.pkl'), 'wb'))
             plotting(result_dir)
         
+        return train_loss, test_loss, test_acc
