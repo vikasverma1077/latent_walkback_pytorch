@@ -27,7 +27,7 @@ from lib.distributions import log_normal2
 
 from networks_lwb import * #Net_svhn_theano
 from load import *
-from utils import *
+from utils2 import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
 from collections import OrderedDict
@@ -148,7 +148,6 @@ def experiment_name(dataset='celebA',
     exp_name += '_enc_every_step_' + str(encode_every_step)
     exp_name += '_enc_one_upd_' + str(encoder_one_update)
     exp_name += '_bs_'+str(batch_size)
-    exp_name += '_lr_'+str(lr)
     exp_name += '_meta_step_'+str(meta_steps)
     exp_name += '_sigma_'+str(sigma)
     exp_name += '_temp_'+str(temperature)
@@ -404,6 +403,8 @@ def train(args, lrate):
                     #if encode==True:
                     if args.encoder_one_update == 1 and meta_step == 0:
                         optimizer_encoder.step()
+                    elif args.encoder_one_update == 0 :
+                        optimizer_encoder.step()
                     optimizer_transition.step()
                     optimizer_decoder.step()
                 else:
@@ -441,8 +442,11 @@ def train(args, lrate):
                     temperature_forward *= args.temperature_factor
 
 
-            if np.isnan(loss.data.cpu()[0]) or np.isinf(loss.data.cpu()[0]):
-                print('NaN detected')
+            if np.isnan(loss.data.cpu()[0]):
+                print('loss is NaN ')
+                return 1.
+            elif np.isinf(loss.data.cpu()[0]):
+                print('loss is inf ')
                 return 1.
             
             if args.ssl == 0:
@@ -496,7 +500,7 @@ def train(args, lrate):
                         z = z_new
         
         if args.ssl==1:
-            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, step=0, filep = filep, num_epochs=200, args=args, labels_per_class= 400, img_shape= input_shape)
+            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, step=0, filep = filep, num_epochs=100, args=args, labels_per_class= 400, img_shape= input_shape)
     filep.close()
 
             

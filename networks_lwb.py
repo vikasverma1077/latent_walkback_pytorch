@@ -455,7 +455,7 @@ class Net_cifar(nn.Module):
             self.decoder_params.extend(self.bn15_list[i].parameters())
 
 
-        self.conv_z_x_4 = nn.ConvTranspose2d(self.init_ch, self.imgSize[0], kernel_size= 1, stride= 1)
+        self.conv_z_x_4 = nn.ConvTranspose2d(self.init_ch, self.imgSize[0], kernel_size= self.kernel_size, stride= self.stride)
         self.decoder_params.extend(self.conv_z_x_4.parameters())
         self.bn16_list=nn.ModuleList()
         for i in range(args.meta_steps):
@@ -518,9 +518,9 @@ class Net_cifar(nn.Module):
         #print h.shape
         #h = torch.clamp(h, min=0, max=5)
         #print h3
-        mu = self.bn5_list[step](self.fc_z_mu(h))  #### use h3 for three layers in the transition operator
+        mu =  self.fc_z_mu(h)#self.bn5_list[step](self.fc_z_mu(h))## use h3 for three layers in the transition operator
         #print mu
-        sigma = self.bn6_list[step](self.fc_z_sigma(h))
+        sigma = self.fc_z_sigma(h)#self.bn6_list[step](self.fc_z_sigma(h))# #
         #print sigma
         #print ('mu', np.isnan(mu.data.cpu().numpy()).any())
         #print ('sigma', np.isnan(sigma.data.cpu().numpy()).any())
@@ -567,7 +567,7 @@ class Net_cifar(nn.Module):
         #print (d.shape)
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
         #print (d.shape)
-        d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        #d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
         #print (d.shape)
         d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
         #print (d.shape)
@@ -587,7 +587,7 @@ class Net_cifar(nn.Module):
     def sample(self, z, temperature,step):
         d = self.act(self.bn12_list[step](self.fc_z_x_1(z)))
         d = d.view(-1, self.last_encoder_shape[1],self.last_encoder_shape[2], self.last_encoder_shape[3])
-        d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
+        #d = self.act(self.bn13_list[step](self.conv_z_x_1(d)))
         d = self.act(self.bn14_list[step](self.conv_z_x_2(d)))
         d = self.act(self.bn15_list[step](self.conv_z_x_3(d)))
         d = self.sigmoid(self.bn16_list[step](self.conv_z_x_4(d)))

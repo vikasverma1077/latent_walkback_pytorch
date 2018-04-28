@@ -111,9 +111,9 @@ def log_sum_exp(tensor, dim=-1, sum_op=torch.sum):
     return torch.log(sum_op(torch.exp(tensor - max), dim=dim, keepdim=True) + 1e-8) + max
 
 
-def get_x_z_at_each_step(x, model,temperature, step):
+def get_mu_encode_every_step(x, model,temperature, step):
+    ## gives mu when encoding is done at every step###
     x = Variable(x.data, requires_grad=False)
-    #if args.encode_every_step==1 or step==0:
     mu_enc, sigma_enc = model.encode(x, step)
     z = model.reparameterize(mu_enc, sigma_enc)
     z_tilde, log_p_reverse, mu_trans, sigma_trans = model.transition( z, temperature, step)
@@ -121,6 +121,35 @@ def get_x_z_at_each_step(x, model,temperature, step):
     
     return z, z_tilde, x_tilde, mu_enc
 
+
+def get_mu_encode_one_step(args,x, model, mu_idx):
+    ### gives mu when encoding is done only at first step
+    ### mu_idx : the index of mu that is to be used as feature
+    ### e.g. : for a 2 step model, there can be three mu's
+    x = Variable(x.data, requires_grad=False)
+    temperature_forward = args.temperature
+    
+    if mu_idx ==0:
+        mu_enc, sigma_enc = model.encode(x, step=0)
+        return mu_enc
+    
+    elif mu_idx ==1:
+        mu_enc, sigma_enc = model.encode(x, step=0)
+        z = model.reparameterize(mu_enc, sigma_enc)
+        z_tilde, log_p_reverse, mu_trans, sigma_trans = model.transition( z, temperature_forward, step=0)
+        return mu_trans
+    
+    else:
+        mu_enc, sigma_enc = model.encode(x, step=0)
+        z = model.reparameterize(mu_enc, sigma_enc)
+        z, log_p_reverse, mu_trans, sigma_trans = model.transition( z, temperature_forward, step=0)
+        temperature_forward = temperature_forward * args.temperature_factor
+        
+        for i in range(mu_idx-1):
+            z, log_p_reverse, mu_trans, sigma_trans = model.transition( z, temperature_forward, step=i+1)
+            temperature_forward = temperature_forward * args.temperature_factor
+            
+        return mu_trans
 
 def get_sampler(labels,n_labels, n=None):
     from torch.utils.data.sampler import SubsetRandomSampler
@@ -236,13 +265,17 @@ def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_class
                     data, target = data.cuda(), target.cuda()
                 data, target = Variable(data), Variable(target)
                 
-                x = data
-                temperature_forward = args.temperature
-                for i in range(step+1):
-                    z, z_tilde, x, mu = get_x_z_at_each_step(x, model,temperature_forward, step=i)
-                    x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                    temperature_forward = temperature_forward * args.temperature_factor;
+                if args.encode_every_step==1:
+                    x = data
+                    temperature_forward = args.temperature
+                    for i in range(step+1):
+                        z, z_tilde, x, mu = get_mu_encode_every_step(x, model,temperature_forward, step=i)
+                        x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                        temperature_forward = temperature_forward * args.temperature_factor;
                 
+                else:
+                    mu=get_mu_encode_one_step(args, data, model, mu_idx=step)
+                       
                 c_optimizer.zero_grad()
                 output = C(mu)
                 loss = loss_fn(output, target) 
@@ -272,13 +305,18 @@ def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_class
                 if args.cuda:
                     data, target = data.cuda(), target.cuda()
                 data, target = Variable(data, volatile=True), Variable(target)
-                x = data
-                temperature_forward = args.temperature
-                for i in range(step+1):
-                    z, z_tilde, x, mu = get_x_z_at_each_step(x, model,temperature_forward, step=i)
-                    x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
-                    temperature_forward = temperature_forward * args.temperature_factor;
                 
+                if args.encode_every_step==1:
+                    x = data
+                    temperature_forward = args.temperature
+                    for i in range(step+1):
+                        z, z_tilde, x, mu = get_mu_encode_every_step(x, model,temperature_forward, step=i)
+                        x = x.view(-1,img_shape[0], img_shape[1], img_shape[2])#reshape(args.batch_size, n_colors, WIDTH, WIDTH)
+                        temperature_forward = temperature_forward * args.temperature_factor
+                
+                else:
+                    mu=get_mu_encode_one_step(args, data, model, mu_idx=step)
+                   
                 output = C(mu)
                 test_loss += loss_fn(output, target).data[0]*target.shape[0] # sum up batch loss
                 pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability

@@ -345,7 +345,7 @@ def train(args, lrate):
         
         
         if args.ssl==1:
-            train_ssl_loss, test_ssl_loss, test_ssl_acc= get_ssl_results_vae(train_ssl_loss, test_ssl_loss, test_ssl_acc,result_dir, model, num_classes, train_loader, test_loader, filep = filep, num_epochs=200, args=args, labels_per_class= 400, img_shape= input_shape)
+            train_ssl_loss, test_ssl_loss, test_ssl_acc= get_ssl_results_vae(train_ssl_loss, test_ssl_loss, test_ssl_acc,result_dir, model, num_classes, filep = filep, num_epochs=100, args=args, labels_per_class= 400, img_shape= input_shape)
     filep.close()
 
                     
