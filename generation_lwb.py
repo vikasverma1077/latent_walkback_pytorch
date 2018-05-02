@@ -100,7 +100,8 @@ def parse_args():
     parser.add_argument('--sigma', type = float, default = 1.0,
                         help='How much Noise should be added at step 1')
 
-
+    parser.add_argument('--cl_step', type = int, default = 0,
+                        help='from where to extract mu')
 
     parser.add_argument('--job_id', type=str, default='')
     parser.add_argument('--add_name', type=str, default='')
@@ -500,7 +501,7 @@ def train(args, lrate):
                         z = z_new
         
         if args.ssl==1:
-            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, step=0, filep = filep, num_epochs=100, args=args, labels_per_class= 400, img_shape= input_shape)
+            train_ssl_loss, test_ssl_loss, test_ssl_acc = get_ssl_results(train_ssl_loss, test_ssl_loss, test_ssl_acc, result_dir, model, num_classes, step=args.cl_step, filep = filep, num_epochs=100, args=args, labels_per_class= 400, img_shape= input_shape)
     filep.close()
 
             

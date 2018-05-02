@@ -234,6 +234,7 @@ def load_data_subset(data_aug, batch_size,workers,dataset, data_target_dir, labe
 
 def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_classes, step, filep, num_epochs, args, labels_per_class, img_shape):
         C = nn.Sequential(
+            nn.BatchNorm1d(args.nl),
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
@@ -354,6 +355,7 @@ def get_ssl_results(train_loss, test_loss, test_acc,result_dir, model, num_class
 
 def get_ssl_results_vae(train_loss, test_loss, test_acc, result_dir, model, num_classes, filep, num_epochs, args, labels_per_class, img_shape):
         C = nn.Sequential(
+            nn.BatchNorm1d(args.nl),
             nn.Linear(args.nl, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),

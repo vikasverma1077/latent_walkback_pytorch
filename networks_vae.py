@@ -1,3 +1,8 @@
+'''
+Created on May 1, 2018
+
+@author: vermavik
+'''
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -216,4 +221,3 @@ class VAE(nn.Module):
         mu, logvar = self.encode(x.view(-1, *(self.imgSize)))
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
-

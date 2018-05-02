@@ -491,8 +491,8 @@ class Net_cifar(nn.Module):
         h = h.view(-1, self.flat_shape)
         #h = self.act(self.bn4_list[step](self.fc_layer_1(h)))
         #print h.shape
-        mu = self.fc_z_mu(h)#mu = self.bn5_list[step](self.fc_z_mu(h))
-        sigma = self.fc_z_sigma(h)#sigma = self.bn6_list[step](self.fc_z_sigma(h))
+        mu = self.bn5_list[step](self.fc_z_mu(h))#self.fc_z_mu(h) # 
+        sigma = self.bn6_list[step](self.fc_z_sigma(h))#self.fc_z_sigma(h)#
         return mu, sigma
 
 
@@ -518,9 +518,9 @@ class Net_cifar(nn.Module):
         #print h.shape
         #h = torch.clamp(h, min=0, max=5)
         #print h3
-        mu =  self.fc_z_mu(h)#self.bn5_list[step](self.fc_z_mu(h))## use h3 for three layers in the transition operator
+        mu =  self.bn5_list[step](self.fc_z_mu(h))# self.fc_z_mu(h)## use h3 for three layers in the transition operator
         #print mu
-        sigma = self.fc_z_sigma(h)#self.bn6_list[step](self.fc_z_sigma(h))# #
+        sigma = self.bn6_list[step](self.fc_z_sigma(h))#self.fc_z_sigma(h)# #
         #print sigma
         #print ('mu', np.isnan(mu.data.cpu().numpy()).any())
         #print ('sigma', np.isnan(sigma.data.cpu().numpy()).any())

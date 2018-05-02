@@ -1,6 +1,5 @@
 '''
 Created on Apr 14, 2018
-
 @author: vermavik
 '''
 import argparse
@@ -28,7 +27,7 @@ from lib.distributions import log_normal2
 
 from networks_vae import *
 from load import *
-from utils import *
+from utils2 import *
 from distutils.dir_util import copy_tree
 from shutil import rmtree
 from collections import OrderedDict
@@ -241,6 +240,7 @@ def train(args, lrate):
     
     if dataset == 'svhn' or dataset == 'cifar10' :
         model = VAE(args, imgSize=input_shape)
+        #print "model"
     else:
         model = VAE_old(args, imgSize=input_shape)
     if args.cuda:
@@ -275,6 +275,7 @@ def train(args, lrate):
     test_ssl_acc=[] 
     
     for epoch in range(args.epochs):
+        #print ('epoch')
         print ('epoch', epoch)
         for batch_idx, (data, target) in enumerate(train_loader):
             #print data.min(), data.max()
@@ -354,4 +355,3 @@ if __name__ == '__main__':
     args= parse_args()
     train(args, lrate=0.0001)
     pass
-
